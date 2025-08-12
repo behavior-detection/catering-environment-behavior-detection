@@ -614,7 +614,9 @@
                         <select class="select" id="queryTimeRange" style="margin-left: auto; padding: 8px 12px; border: 1px solid #dee2e6; border-radius: 6px; background: white; font-size: 14px;">
                             <option value="1">最近1小时</option>
                             <option value="24" selected>最近24小时</option>
+                            <option value="48">最近48小时</option>
                             <option value="168">最近7天</option>
+                            <option value="720">最近30天</option>
                             <option value="0">所有数据</option>
                         </select>
                     </div>
@@ -1317,24 +1319,44 @@
 
         // 获取时间范围描述的工具函数
         function getTimeRangeDescription(timeRangeHours, queryAllData) {
-            if (queryAllData || timeRangeHours === 0) {
+            console.log('生成时间范围描述:', { timeRangeHours, queryAllData });
+
+            // 修复：确保参数有效性
+            if (queryAllData === true || timeRangeHours === 0 || timeRangeHours === null || timeRangeHours === undefined) {
                 return '所有历史数据';
             }
 
-            if (timeRangeHours === 1) {
+            // 确保是数字类型
+            const hours = parseInt(timeRangeHours);
+            if (isNaN(hours) || hours <= 0) {
+                return '最近24小时'; // 默认值
+            }
+
+            if (hours === 1) {
                 return '最近1小时';
-            } else if (timeRangeHours === 24) {
+            } else if (hours === 24) {
                 return '最近24小时';
-            } else if (timeRangeHours === 168) {
+            } else if (hours === 48) {
+                return '最近48小时';
+            } else if (hours === 72) {
+                return '最近3天';
+            } else if (hours === 168) {
                 return '最近7天';
-            } else if (timeRangeHours >= 24) {
-                const days = Math.floor(timeRangeHours / 24);
-                return `最近${days}天`;
+            } else if (hours === 720) {
+                return '最近30天';
+            } else if (hours >= 24) {
+                const days = Math.floor(hours / 24);
+                if (days === 1) {
+                    return '最近1天';
+                } else {
+                    return `最近${days}天`;
+                }
             } else {
-                return `最近${timeRangeHours}小时`;
+                return `最近${hours}小时`;
             }
         }
 
+        // 修复AI查询中的时间范围处理
         async function submitAIQuery() {
             const queryInput = document.getElementById('aiQueryInput');
             const queryBtn = document.getElementById('queryBtn');
@@ -1361,17 +1383,23 @@
             resultDiv.style.display = 'block';
 
             try {
-                const requestData = {
-                    query: query,
-                    time_range_hours: parseInt(timeRange) || 24
-                };
+                // 修复：确保时间范围参数正确处理
+                let timeRangeHours = parseInt(timeRange);
 
-                // 确保使用正确的时间范围描述
-                if (parseInt(timeRange) === 0) {
-                    requestData.time_range_hours = 0;
+                // 如果时间范围无效，使用默认值
+                if (isNaN(timeRangeHours) || timeRangeHours < 0) {
+                    timeRangeHours = 24;
+                    console.warn('时间范围参数无效，使用默认24小时');
                 }
 
-                console.log('AI查询请求:', requestData);
+                const requestData = {
+                    query: query,
+                    time_range_hours: timeRangeHours
+                };
+
+                console.log('AI查询请求数据:', requestData);
+                console.log('原始时间范围选择:', timeRange);
+                console.log('处理后的时间范围:', timeRangeHours);
 
                 const response = await fetch(`${JANUS_API_URL}/query`, {
                     method: 'POST',
@@ -1382,6 +1410,7 @@
                 });
 
                 const result = await response.json();
+                console.log('AI查询响应:', result);
 
                 if (result.success) {
                     displayAIAnalysisResult(result);
@@ -1403,11 +1432,16 @@
             }
         }
 
+        // AI分析结果显示函数
         function displayAIAnalysisResult(result) {
             const contentDiv = document.getElementById('aiResultContent');
             const analysis = result.analysis;
             const dataSummary = result.data_summary;
             const queryInfo = result.query_info;
+
+            console.log('显示AI分析结果:', result);
+            console.log('查询信息:', queryInfo);
+            console.log('数据摘要:', dataSummary);
 
             let html = `
                 <div style="margin-bottom: 15px;">
@@ -1418,22 +1452,30 @@
                 </div>
             `;
 
-            // 修复时间范围显示问题
-            if (queryInfo) {
-                const rangeDesc = getTimeRangeDescription(
-                    queryInfo.time_range_hours,
+            // 时间范围显示逻辑
+            let rangeDesc = '最近24小时'; // 默认值
+
+            if (dataSummary && dataSummary.time_description) {
+                // 优先使用后端返回的时间描述
+                rangeDesc = dataSummary.time_description;
+                console.log('使用后端时间描述:', rangeDesc);
+            } else if (queryInfo) {
+                // 备选：根据查询信息生成描述
+                rangeDesc = getTimeRangeDescription(
+                    queryInfo.smart_detected_hours || queryInfo.user_selected_hours,
                     queryInfo.query_all_data
                 );
-
-                html += `
-                    <div style="margin-bottom: 15px;">
-                        <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">分析范围:</div>
-                        <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; font-size: 14px; color: #1565c0;">
-                            基于${rangeDesc}的数据
-                        </div>
-                    </div>
-                `;
+                console.log('使用查询信息生成描述:', rangeDesc);
             }
+
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">分析范围:</div>
+                    <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; font-size: 14px; color: #1565c0;">
+                        基于${rangeDesc}的数据
+                    </div>
+                </div>
+            `;
 
             if (analysis.direct_answer) {
                 html += `
@@ -1447,11 +1489,16 @@
             }
 
             if (analysis.detailed_explanation) {
+                // 处理详细分析中的换行符
+                const formattedExplanation = analysis.detailed_explanation
+                    .replace(/\n/g, '<br>')
+                    .replace(/•\s*/g, '• ');
+
                 html += `
                     <div style="margin-bottom: 15px;">
                         <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">详细分析:</div>
                         <div style="background: white; padding: 15px; border-radius: 6px; line-height: 1.6; color: #6c757d;">
-                            ${analysis.detailed_explanation}
+                            ${formattedExplanation}
                         </div>
                     </div>
                 `;
@@ -1476,21 +1523,34 @@
                         <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">数据概览:</div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
                             <div style="background: white; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.total_violations}</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.total_violations || 0}</div>
                                 <div style="font-size: 12px; color: #6c757d;">总违规</div>
                             </div>
                             <div style="background: white; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.total_records}</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.total_records || 0}</div>
                                 <div style="font-size: 12px; color: #6c757d;">检测记录</div>
                             </div>
                             <div style="background: white; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.active_cameras}</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.active_cameras || 0}</div>
                                 <div style="font-size: 12px; color: #6c757d;">活跃摄像头</div>
                             </div>
                         </div>
                     </div>
                 `;
             }
+
+<!--            // 添加调试信息（生产环境可移除）-->
+<!--            if (queryInfo) {-->
+<!--                html += `-->
+<!--                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 12px; color: #6c757d;">-->
+<!--                        <strong>调试信息:</strong><br>-->
+<!--                        用户选择: ${queryInfo.user_selected_hours}小时 | -->
+<!--                        智能检测: ${queryInfo.smart_detected_hours}小时 | -->
+<!--                        查询全部: ${queryInfo.query_all_data ? '是' : '否'} | -->
+<!--                        时间调整: ${queryInfo.time_range_adjusted ? '是' : '否'}-->
+<!--                    </div>-->
+<!--                `;-->
+<!--            }-->
 
             contentDiv.innerHTML = html;
         }
