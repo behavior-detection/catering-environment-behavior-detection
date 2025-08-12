@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>违规数据监控 - YOLO检测系统</title>
+    <!-- 引入 ECharts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        /* 筛选控制面板 */
+        .filter-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .filter-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-body {
+            padding: 25px;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .time-range-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .time-range-btn {
+            padding: 12px 8px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .time-range-btn:hover {
+            border-color: #667eea;
+            background: #fff;
+        }
+
+        .time-range-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .filter-status {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #1565c0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 图表布局 */
+        .charts-section {
+            margin-bottom: 30px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .chart-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-body {
+            padding: 20px;
+            height: 350px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .panel-body {
+            padding: 25px;
+        }
+
+        /* 统一的列表样式 */
+        .unified-list {
+            list-style: none;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .list-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .list-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 4px;
+        }
+
+        .item-stats {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+
+        .item-count {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* 特殊的违规计数样式 */
+        .violation-count {
+            background: #dc3545;
+        }
+
+        .recent-records {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .records-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .records-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .records-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            margin: 0 auto 15px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .message-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .time-range-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .records-table {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>违规数据监控系统</h1>
+            <p>基于YOLO检测的实时违规行为分析</p>
+        </div>
+
+        <!-- 筛选控制面板 -->
+        <div class="filter-panel">
+            <div class="filter-header">
+                <span>🔍</span>
+                <span>数据筛选控制面板</span>
+                <span id="lastUpdate" class="timestamp" style="margin-left: auto;">最后更新: --</span>
+            </div>
+            <div class="filter-body">
+                <!-- 时间范围选择 -->
+                <div class="filter-section">
+                    <div class="filter-label">
+                        <span>📅</span>
+                        <span>时间范围选择</span>
+                    </div>
+                    <div class="time-range-grid">
+                        <div class="time-range-btn" data-range="1h">
+                            <div style="font-weight: 600;">1小时</div>
+                            <div style="font-size: 0.8em; opacity: 0.8;">最近1小时</div>
+                        </div>
+                        <div class="time-range-btn active" data-range="24h">
+                            <div style="font-weight: 600;">24小时</div>
+                            <div style="font-size: 0.8em; opacity: 0.8;">最近1天</div>
+                        </div>
+                        <div class="time-range-btn" data-range="7d">
+                            <div style="font-weight: 600;">7天</div>
+                            <div style="font-size: 0.8em; opacity: 0.8;">最近一周</div>
+                        </div>
+                        <div class="time-range-btn" data-range="30d">
+                            <div style="font-weight: 600;">30天</div>
+                            <div style="font-size: 0.8em; opacity: 0.8;">最近一月</div>
+                        </div>
+                        <div class="time-range-btn" data-range="all">
+                            <div style="font-weight: 600;">全部</div>
+                            <div style="font-size: 0.8em; opacity: 0.8;">所有数据</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 筛选状态显示 -->
+                <div class="filter-status" id="filterStatus">
+                    <span>ℹ️</span>
+                    <span id="filterStatusText">当前筛选：显示最近24小时数据</span>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="applyFilters()">
+                        <span>🔄</span> 刷新数据
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        <span>↩️</span> 重置筛选
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearData()">
+                        <span>🗑️</span> 清空数据
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalViolations">--</div>
+                <div class="stat-label">总违规次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalRecords">--</div>
+                <div class="stat-label">检测记录数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeCameras">--</div>
+                <div class="stat-label">活跃摄像头</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgViolations">--</div>
+                <div class="stat-label">平均违规/记录</div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts-section">
+            <div class="charts-grid">
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <span>违规类型分布图</span>
+                        <span id="violationPieInfo">--</span>
+                    </div>
+                    <div class="chart-body">
+                        <div id="violationPieChart" class="chart-container"></div>
+                    </div>
+                </div>
+
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <span>摄像头违规分布图</span>
+                        <span id="cameraCompareInfo">--</span>
+                    </div>
+                    <div class="chart-body">
+                        <div id="cameraCompareChart" class="chart-container"></div>
+                    </div>
+                </div>
+
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <span>24小时违规分布图</span>
+                        <span id="hourlyDistributionInfo">--</span>
+                    </div>
+                    <div class="chart-body">
+                        <div id="hourlyDistributionChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="panel">
+                <div class="panel-header">违规类型统计</div>
+                <div class="panel-body">
+                    <ul class="unified-list" id="violationsList">
+                        <li class="loading">
+                            <div class="spinner"></div>
+                            <div>加载中...</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">摄像头统计</div>
+                <div class="panel-body">
+                    <ul class="unified-list" id="camerasList">
+                        <li class="loading">
+                            <div class="spinner"></div>
+                            <div>加载中...</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI查询面板 -->
+        <div class="panel" style="margin-bottom: 30px;">
+            <div class="panel-header">智能查询助手</div>
+            <div class="panel-body">
+                <div class="query-section">
+                    <div class="query-input-wrapper" style="position: relative; margin-bottom: 15px;">
+                        <textarea class="query-input" id="aiQueryInput"
+                                  placeholder="请用自然语言描述您的问题，例如：今天哪个区域违规最多？口罩佩戴情况如何？"
+                                  rows="2" style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; resize: vertical; outline: none; transition: border-color 0.3s ease;"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                        <button class="btn btn-primary" onclick="submitAIQuery()" id="queryBtn">
+                            AI分析
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearAIQuery()">
+                            清空
+                        </button>
+                        <select class="select" id="queryTimeRange" style="margin-left: auto; padding: 8px 12px; border: 1px solid #dee2e6; border-radius: 6px; background: white; font-size: 14px;">
+                            <option value="1">最近1小时</option>
+                            <option value="24" selected>最近24小时</option>
+                            <option value="168">最近7天</option>
+                            <option value="0">所有数据</option>
+                        </select>
+                    </div>
+
+                    <!-- 快速查询示例 -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px;">快速查询:</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;"
+                                    onclick="setAIQuery('今天违规情况如何？')">今天违规情况</button>
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;"
+                                    onclick="setAIQuery('哪个摄像头违规最多？')">违规热点</button>
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;"
+                                    onclick="setAIQuery('口罩佩戴情况怎么样？')">口罩合规</button>
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;"
+                                    onclick="setAIQuery('当前风险等级如何？需要采取什么措施？')">风险评估</button>
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;"
+                                    onclick="setAIQuery('最近一周的违规趋势变化')">趋势分析</button>
+                        </div>
+                    </div>
+
+                    <!-- AI分析结果显示区域 -->
+                    <div id="aiAnalysisResult" style="display: none;">
+                        <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; border-radius: 8px;">
+                            <h4 style="color: #495057; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                                AI分析结果
+                            </h4>
+                            <div id="aiResultContent">
+                                <!-- 结果内容将在这里显示 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-records">
+            <div class="panel-header">最近检测记录</div>
+            <div class="panel-body">
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>摄像头ID</th>
+                            <th>检测时间</th>
+                            <th>创建时间</th>
+                            <th>违规次数</th>
+                            <th>违规类型</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <div class="spinner"></div>
+                                <div>加载中...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        const JANUS_API_URL = 'http://localhost:5001/api';
+
+        // 违规类型中文映射
+        const violationMapping = {
+            'mask': '未佩戴口罩',
+            'hat': '未佩戴工作帽',
+            'phone': '使用手机',
+            'cigarette': '吸烟行为',
+            'mouse': '鼠患问题',
+            'uniform': '工作服违规',
+            'person': '人员检测',
+            'no_mask': '未佩戴口罩',
+            'no_hat': '未佩戴工作帽',
+            'phone_usage': '使用手机',
+            'smoking': '吸烟行为',
+            'mouse_infestation': '鼠患问题',
+            'uniform_violation': '工作服违规',
+            'unknown': '未知违规'
+        };
+
+        // 违规类型颜色映射
+        const violationColors = {
+            'mask': '#FF6B6B',
+            'hat': '#4ECDC4',
+            'phone': '#45B7D1',
+            'cigarette': '#96CEB4',
+            'mouse': '#FFEAA7',
+            'uniform': '#DDA0DD',
+            'person': '#A8E6CF',
+            'no_mask': '#FF6B6B',
+            'no_hat': '#4ECDC4',
+            'phone_usage': '#45B7D1',
+            'smoking': '#96CEB4',
+            'mouse_infestation': '#FFEAA7',
+            'uniform_violation': '#DDA0DD',
+            'unknown': '#999999'
+        };
+
+        // 当前筛选状态
+        let currentFilter = {
+            timeRange: '24h'
+        };
+
+        // 图表实例
+        let violationPieChart = null;
+        let cameraCompareChart = null;
+        let hourlyDistributionChart = null;
+
+        // 全局数据存储
+        let globalData = null;
+        let isLoading = false;
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFilters();
+            initializeCharts();
+            loadData();
+
+            // 设置定期刷新
+            setInterval(() => {
+                if (!isLoading) {
+                    loadData();
+                }
+            }, 60000);
+
+            // 查询输入框回车事件
+            document.getElementById('aiQueryInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitAIQuery();
+                }
+            });
+        });
+
+        // 初始化图表
+        function initializeCharts() {
+            violationPieChart = echarts.init(document.getElementById('violationPieChart'));
+            cameraCompareChart = echarts.init(document.getElementById('cameraCompareChart'));
+            hourlyDistributionChart = echarts.init(document.getElementById('hourlyDistributionChart'));
+
+            window.addEventListener('resize', function() {
+                violationPieChart.resize();
+                cameraCompareChart.resize();
+                hourlyDistributionChart.resize();
+            });
+        }
+
+        // 初始化筛选器
+        function initializeFilters() {
+            document.querySelectorAll('[data-range]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter.timeRange = this.dataset.range;
+                    updateFilterStatus();
+                });
+            });
+
+            updateFilterStatus();
+        }
+
+        // 更新筛选状态显示
+        function updateFilterStatus() {
+            let rangeText = '';
+
+            switch(currentFilter.timeRange) {
+                case '1h':
+                    rangeText = '最近1小时';
+                    break;
+                case '24h':
+                    rangeText = '最近24小时';
+                    break;
+                case '7d':
+                    rangeText = '最近7天';
+                    break;
+                case '30d':
+                    rangeText = '最近30天';
+                    break;
+                case 'all':
+                    rangeText = '所有数据';
+                    break;
+            }
+
+            document.getElementById('filterStatusText').textContent = `当前筛选：${rangeText}`;
+        }
+
+        // 应用筛选器
+        function applyFilters() {
+            if (!isLoading) {
+                loadData();
+            }
+        }
+
+        // 重置筛选器
+        function resetFilters() {
+            document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-range="24h"]').classList.add('active');
+
+            currentFilter = {
+                timeRange: '24h'
+            };
+
+            updateFilterStatus();
+            if (!isLoading) {
+                loadData();
+            }
+            showMessage('筛选条件已重置', 'info');
+            setTimeout(() => clearMessages(), 3000);
+        }
+
+        // 加载数据
+        async function loadData() {
+            if (isLoading) {
+                console.log('⚠️ 数据正在加载中，跳过重复请求');
+                return;
+            }
+
+            isLoading = true;
+
+            try {
+                console.log('📡 开始加载数据，筛选条件:', currentFilter);
+
+                let apiUrl = `${API_BASE_URL}/violations/analytics`;
+                let params = new URLSearchParams();
+
+                // 根据当前筛选条件构建API参数
+                if (currentFilter.timeRange === 'all') {
+                    params.append('range', 'all');
+                    params.append('all', 'true');
+                } else {
+                    params.append('range', currentFilter.timeRange);
+                }
+
+                const finalUrl = `${apiUrl}?${params.toString()}`;
+                console.log('📡 调用API获取数据:', finalUrl);
+
+                const response = await fetch(finalUrl);
+                const result = await response.json();
+
+                console.log('📡 数据API响应:', result);
+
+                if (result.success) {
+                    globalData = result.data;
+
+                    console.log('📊 数据结构:', {
+                        summary: result.data.summary,
+                        violations_by_type: result.data.violations_by_type,
+                        violations_by_type_keys: Object.keys(result.data.violations_by_type || {}),
+                        violations_by_camera: Object.keys(result.data.violations_by_camera || {}),
+                        recent_records_count: result.data.recent_records?.length || 0
+                    });
+
+                    updateDashboard(result.data);
+                    updateCharts();
+
+                    const summary = result.data.summary;
+                    console.log('✅ 数据加载完成:', {
+                        records: summary.total_records,
+                        violations: summary.total_violations,
+                        cameras: summary.active_cameras,
+                        violation_types: Object.keys(result.data.violations_by_type || {}).length
+                    });
+
+                } else {
+                    throw new Error(result.message || '加载数据失败');
+                }
+
+            } catch (error) {
+                console.error('❌ 加载数据失败:', error);
+                showMessage('加载数据失败: ' + error.message, 'error');
+            } finally {
+                isLoading = false;
+                document.getElementById('lastUpdate').textContent =
+                    '最后更新: ' + new Date().toLocaleTimeString();
+            }
+        }
+
+        // 更新仪表板
+        function updateDashboard(data) {
+            console.log('📊 更新仪表板显示数据:', {
+                summary: data.summary,
+                violations_by_type: data.violations_by_type,
+                violations_by_camera: data.violations_by_camera
+            });
+
+            updateStats(data.summary);
+            updateViolationsList(data.violations_by_type);
+            updateCamerasList(data.violations_by_camera);
+            updateRecentRecords(data.recent_records);
+        }
+
+        // 更新统计数据
+        function updateStats(summary) {
+            document.getElementById('totalViolations').textContent = summary.total_violations || 0;
+            document.getElementById('totalRecords').textContent = summary.total_records || 0;
+            document.getElementById('activeCameras').textContent = summary.active_cameras || 0;
+
+            const avgViolations = summary.total_records > 0 ?
+                (summary.total_violations / summary.total_records).toFixed(1) : '0';
+            document.getElementById('avgViolations').textContent = avgViolations;
+        }
+
+        // 更新违规类型列表
+        function updateViolationsList(violationsByType) {
+            const listElement = document.getElementById('violationsList');
+
+            console.log('🔍 更新违规类型列表:', violationsByType);
+
+            if (!violationsByType || Object.keys(violationsByType).length === 0) {
+                listElement.innerHTML = `
+                    <li class="list-item">
+                        <div class="item-info">
+                            <div class="item-name">暂无违规数据</div>
+                            <div class="item-stats">检测系统正常运行</div>
+                        </div>
+                        <div class="item-count">0</div>
+                    </li>
+                `;
+                console.log('⚠️ 违规类型数据为空');
+                return;
+            }
+
+            // 过滤有效的违规数据
+            const validViolations = Object.entries(violationsByType)
+                .filter(([type, count]) => {
+                    const isValid = count > 0 && typeof count === 'number';
+                    console.log(`检查违规类型 ${type}: 计数=${count}, 有效=${isValid}`);
+                    return isValid;
+                })
+                .sort(([,a], [,b]) => b - a);
+
+            console.log('✅ 有效的违规类型:', validViolations);
+
+            if (validViolations.length === 0) {
+                listElement.innerHTML = `
+                    <li class="list-item">
+                        <div class="item-info">
+                            <div class="item-name">所有违规计数为0</div>
+                            <div class="item-stats">当前状态良好</div>
+                        </div>
+                        <div class="item-count">0</div>
+                    </li>
+                `;
+                return;
+            }
+
+            listElement.innerHTML = validViolations.map(([type, count]) => {
+                const displayName = violationMapping[type] || `${type}(原始)`;
+                console.log(`📊 违规类型映射: ${type} -> ${displayName} (${count}次)`);
+
+                return `
+                    <li class="list-item">
+                        <div class="item-info">
+                            <div class="item-name">${displayName}</div>
+                            <div class="item-stats">安全违规检测</div>
+                        </div>
+                        <div class="item-count violation-count">${count}</div>
+                    </li>
+                `;
+            }).join('');
+
+            console.log(`✅ 违规类型列表更新完成，显示 ${validViolations.length} 种违规类型`);
+        }
+
+        // 更新摄像头列表 - 统一样式
+        function updateCamerasList(violationsByCamera) {
+            const listElement = document.getElementById('camerasList');
+
+            if (!violationsByCamera || Object.keys(violationsByCamera).length === 0) {
+                listElement.innerHTML = `
+                    <li class="list-item">
+                        <div class="item-info">
+                            <div class="item-name">暂无摄像头数据</div>
+                            <div class="item-stats">等待检测数据</div>
+                        </div>
+                        <div class="item-count">0</div>
+                    </li>
+                `;
+                return;
+            }
+
+            const sortedCameras = Object.entries(violationsByCamera)
+                .sort(([,a], [,b]) => b - a);
+
+            listElement.innerHTML = sortedCameras.map(([cameraId, violations]) => `
+                <li class="list-item">
+                    <div class="item-info">
+                        <div class="item-name">${cameraId}</div>
+                        <div class="item-stats">违规检测摄像头</div>
+                    </div>
+                    <div class="item-count">${violations}</div>
+                </li>
+            `).join('');
+        }
+
+        // 更新最近记录
+        function updateRecentRecords(recentRecords) {
+            const tableBody = document.getElementById('recordsTableBody');
+
+            if (!recentRecords || recentRecords.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #6c757d;">暂无最近记录</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = recentRecords.slice(0, 10).map(record => {
+                const detectionTime = new Date(record.timestamp).toLocaleString();
+                const createdTime = record.created_at ? new Date(record.created_at).toLocaleString() : '--';
+
+                // 解析违规类型详情
+                let violationTypesDisplay = '无违规';
+                if (record.violations && Object.keys(record.violations).length > 0) {
+                    const violationList = Object.entries(record.violations)
+                        .filter(([type, count]) => count > 0)
+                        .map(([type, count]) => {
+                            const displayName = violationMapping[type] || `${type}(原始)`;
+                            return `${displayName}(${count}次)`;
+                        })
+                        .join(', ');
+                    violationTypesDisplay = violationList || '检测记录';
+                } else if (record.total_violations && record.total_violations > 0) {
+                    violationTypesDisplay = `总违规(${record.total_violations}次)`;
+                }
+
+                return `
+                    <tr>
+                        <td>${record.camera_id}</td>
+                        <td><span class="timestamp">${detectionTime}</span></td>
+                        <td><span class="timestamp">${createdTime}</span></td>
+                        <td><strong>${record.total_violations || 0}</strong></td>
+                        <td>${violationTypesDisplay}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 更新图表
+        function updateCharts() {
+            if (!globalData) {
+                console.log('⚠️ globalData 为空，等待数据加载...');
+                return;
+            }
+
+            updateViolationPieChart();
+            updateCameraCompareChart();
+            updateHourlyDistributionChart();
+        }
+
+        function getViolationDisplayName(type) {
+            return violationMapping[type] || `${type}(原始)`;
+        }
+
+        function getViolationColor(type) {
+            return violationColors[type] || '#999999';
+        }
+
+        // 更新违规类型饼图
+        function updateViolationPieChart() {
+            const violationsByType = globalData.violations_by_type;
+
+            console.log('🔍 更新饼图:', violationsByType);
+
+            if (!violationsByType || Object.keys(violationsByType).length === 0) {
+                violationPieChart.setOption({
+                    title: {
+                        text: '暂无违规数据',
+                        left: 'center',
+                        top: 'middle',
+                        textStyle: { fontSize: 16, color: '#999' }
+                    }
+                });
+                document.getElementById('violationPieInfo').textContent = '无数据';
+                return;
+            }
+
+            const validData = Object.entries(violationsByType)
+                .filter(([type, count]) => {
+                    const isValid = count > 0 && typeof count === 'number';
+                    console.log(`饼图检查违规类型 ${type}: 计数=${count}, 有效=${isValid}`);
+                    return isValid;
+                })
+                .map(([type, count]) => {
+                    const displayName = getViolationDisplayName(type);
+                    console.log(`饼图映射: ${type} -> ${displayName}`);
+
+                    return {
+                        name: displayName,
+                        value: count,
+                        itemStyle: {
+                            color: getViolationColor(type)
+                        }
+                    };
+                });
+
+            if (validData.length === 0) {
+                violationPieChart.setOption({
+                    title: {
+                        text: '所有违规计数为0',
+                        left: 'center',
+                        top: 'middle',
+                        textStyle: { fontSize: 16, color: '#999' }
+                    }
+                });
+                document.getElementById('violationPieInfo').textContent = '计数为0';
+                return;
+            }
+
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    top: 'center'
+                },
+                series: [{
+                    name: '违规类型',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    center: ['60%', '50%'],
+                    avoidLabelOverlap: false,
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '16',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: validData
+                }]
+            };
+
+            violationPieChart.setOption(option, true);
+
+            const totalViolations = validData.reduce((sum, item) => sum + item.value, 0);
+            document.getElementById('violationPieInfo').textContent = `${totalViolations} 次违规`;
+
+            console.log(`✅ 饼图更新完成，显示 ${validData.length} 种违规类型，总计 ${totalViolations} 次`);
+        }
+
+        // 更新摄像头对比图
+        function updateCameraCompareChart() {
+            const violationsByCamera = globalData.violations_by_camera;
+
+            if (!violationsByCamera || Object.keys(violationsByCamera).length === 0) {
+                cameraCompareChart.setOption({
+                    title: {
+                        text: '暂无摄像头数据',
+                        left: 'center',
+                        top: 'middle',
+                        textStyle: {
+                            fontSize: 16,
+                            color: '#999'
+                        }
+                    }
+                });
+                document.getElementById('cameraCompareInfo').textContent = '无数据';
+                return;
+            }
+
+            const sortedCameras = Object.entries(violationsByCamera)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                grid: {
+                    left: '15%',
+                    right: '4%',
+                    bottom: '8%',
+                    top: '5%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: '违规次数',
+                    nameLocation: 'middle',
+                    nameGap: 30
+                },
+                yAxis: {
+                    type: 'category',
+                    data: sortedCameras.map(([camera, _]) => camera),
+                    axisLabel: {
+                        interval: 0,
+                        fontSize: 12,
+                        width: 100,
+                        overflow: 'truncate'
+                    }
+                },
+                series: [{
+                    name: '违规次数',
+                    type: 'bar',
+                    data: sortedCameras.map(([_, count]) => count),
+                    itemStyle: {
+                        color: function(params) {
+                            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+                            return colors[params.dataIndex % colors.length];
+                        }
+                    },
+                    barWidth: '60%'
+                }]
+            };
+
+            cameraCompareChart.setOption(option, true);
+            document.getElementById('cameraCompareInfo').textContent =
+                `${Object.keys(violationsByCamera).length}个摄像头`;
+        }
+
+        // 更新24小时分布图
+        function updateHourlyDistributionChart() {
+            const violationsByHour = globalData.violations_by_hour || {};
+
+            const hours = [];
+            const data = [];
+
+            for (let i = 0; i < 24; i++) {
+                hours.push(i + '时');
+                data.push(violationsByHour[i] || 0);
+            }
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        return `${params[0].name}: ${params[0].value}次违规`;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: hours,
+                    axisLabel: {
+                        interval: 2
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '违规次数'
+                },
+                series: [{
+                    name: '违规次数',
+                    type: 'line',
+                    smooth: true,
+                    data: data,
+                    itemStyle: {
+                        color: '#667eea'
+                    },
+                    areaStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                                { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                                { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                            ]
+                        }
+                    }
+                }]
+            };
+
+            hourlyDistributionChart.setOption(option, true);
+
+            const totalHourlyViolations = data.reduce((a, b) => a + b, 0);
+            document.getElementById('hourlyDistributionInfo').textContent =
+                `${totalHourlyViolations} 次违规`;
+        }
+
+        // AI查询相关功能
+        function setAIQuery(query) {
+            document.getElementById('aiQueryInput').value = query;
+        }
+
+        function clearAIQuery() {
+            document.getElementById('aiQueryInput').value = '';
+            const resultDiv = document.getElementById('aiAnalysisResult');
+            resultDiv.style.display = 'none';
+        }
+
+        // 获取时间范围描述的工具函数
+        function getTimeRangeDescription(timeRangeHours, queryAllData) {
+            if (queryAllData || timeRangeHours === 0) {
+                return '所有历史数据';
+            }
+
+            if (timeRangeHours === 1) {
+                return '最近1小时';
+            } else if (timeRangeHours === 24) {
+                return '最近24小时';
+            } else if (timeRangeHours === 168) {
+                return '最近7天';
+            } else if (timeRangeHours >= 24) {
+                const days = Math.floor(timeRangeHours / 24);
+                return `最近${days}天`;
+            } else {
+                return `最近${timeRangeHours}小时`;
+            }
+        }
+
+        async function submitAIQuery() {
+            const queryInput = document.getElementById('aiQueryInput');
+            const queryBtn = document.getElementById('queryBtn');
+            const resultDiv = document.getElementById('aiAnalysisResult');
+            const contentDiv = document.getElementById('aiResultContent');
+            const timeRange = document.getElementById('queryTimeRange').value;
+
+            const query = queryInput.value.trim();
+
+            if (!query) {
+                showMessage('请输入您的问题', 'error');
+                return;
+            }
+
+            queryBtn.innerHTML = '分析中...';
+            queryBtn.disabled = true;
+
+            contentDiv.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div class="spinner"></div>
+                    <div style="margin-top: 10px; color: #6c757d;">AI正在分析数据，请稍候...</div>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+
+            try {
+                const requestData = {
+                    query: query,
+                    time_range_hours: parseInt(timeRange) || 24
+                };
+
+                // 确保使用正确的时间范围描述
+                if (parseInt(timeRange) === 0) {
+                    requestData.time_range_hours = 0;
+                }
+
+                console.log('AI查询请求:', requestData);
+
+                const response = await fetch(`${JANUS_API_URL}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayAIAnalysisResult(result);
+                } else {
+                    throw new Error(result.error || 'AI分析失败');
+                }
+
+            } catch (error) {
+                console.error('AI查询失败:', error);
+                contentDiv.innerHTML = `
+                    <div class="message message-error" style="margin: 0;">
+                        查询失败: ${error.message}
+                        <br><small>请检查AI服务状态或稍后重试</small>
+                    </div>
+                `;
+            } finally {
+                queryBtn.innerHTML = 'AI分析';
+                queryBtn.disabled = false;
+            }
+        }
+
+        function displayAIAnalysisResult(result) {
+            const contentDiv = document.getElementById('aiResultContent');
+            const analysis = result.analysis;
+            const dataSummary = result.data_summary;
+            const queryInfo = result.query_info;
+
+            let html = `
+                <div style="margin-bottom: 15px;">
+                    <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">查询问题:</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                        ${result.query}
+                    </div>
+                </div>
+            `;
+
+            // 修复时间范围显示问题
+            if (queryInfo) {
+                const rangeDesc = getTimeRangeDescription(
+                    queryInfo.time_range_hours,
+                    queryInfo.query_all_data
+                );
+
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">分析范围:</div>
+                        <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; font-size: 14px; color: #1565c0;">
+                            基于${rangeDesc}的数据
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (analysis.direct_answer) {
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">AI回答:</div>
+                        <div style="background: white; padding: 15px; border-radius: 6px; font-size: 16px; line-height: 1.6;">
+                            ${analysis.direct_answer}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (analysis.detailed_explanation) {
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">详细分析:</div>
+                        <div style="background: white; padding: 15px; border-radius: 6px; line-height: 1.6; color: #6c757d;">
+                            ${analysis.detailed_explanation}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (analysis.suggestions && analysis.suggestions.length > 0) {
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">改进建议:</div>
+                        <div style="background: white; padding: 15px; border-radius: 6px;">
+                            <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                                ${analysis.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (dataSummary) {
+                html += `
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e1e5e9;">
+                        <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">数据概览:</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                            <div style="background: white; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.total_violations}</div>
+                                <div style="font-size: 12px; color: #6c757d;">总违规</div>
+                            </div>
+                            <div style="background: white; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.total_records}</div>
+                                <div style="font-size: 12px; color: #6c757d;">检测记录</div>
+                            </div>
+                            <div style="background: white; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 18px; font-weight: bold; color: #667eea;">${dataSummary.active_cameras}</div>
+                                <div style="font-size: 12px; color: #6c757d;">活跃摄像头</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            contentDiv.innerHTML = html;
+        }
+
+        // 清空数据
+        async function clearData() {
+            if (!confirm('确认清空所有违规数据？此操作不可恢复。')) {
+                return;
+            }
+
+            try {
+                showMessage('正在清空数据...', 'info');
+
+                const response = await fetch(`${API_BASE_URL}/violations/clear`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`数据已清空 - 删除了 ${result.cleared_records || 0} 条记录`, 'success');
+                    setTimeout(() => {
+                        if (!isLoading) {
+                            loadData();
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(result.message || '清空数据失败');
+                }
+
+            } catch (error) {
+                console.error('清空数据失败:', error);
+                showMessage('清空数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示消息
+        function showMessage(message, type = 'info') {
+            clearMessages();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.innerHTML = `
+                <span>${type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠' : 'ℹ'}</span>
+                ${message}
+            `;
+
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.children[1]);
+        }
+
+        // 清除消息
+        function clearMessages() {
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(msg => msg.remove());
+        }
+
+        // 页面可见性变化时刷新数据
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !isLoading) {
+                loadData();
+            }
+        });
+    </script>
+</body>
+</html>
