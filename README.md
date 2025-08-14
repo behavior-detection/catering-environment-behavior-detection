@@ -1,17 +1,20 @@
-# 使用说明
-## 前端：
-        1.'npm install' （需要使用管理员权限，如果直接在终端无法正常运行，可以打开管理员权限的cmd来运行）
-        2.`npm run dev`（在终端运行）
+# catering-environment-behavior-detection
+## 使用说明
+前端：
 
-## 后端：
-【注意】我在这次部署后端的时候，采用了创建虚拟环境的方式，将一个虚拟环境创建在我们这个项目代码里面，然后将django的安装包就安装在这个项目里面，所以理论上来说，你们应该是不用额外去下载django，同时还能保证大家的django版本一致。我还没试过用这个方法，大家可以试一下拉下来之后，能不能直接按照以下步骤运行，而不需要再次下载django。如果这个方式可行，我们以后有其他环境配置需要，也可以考虑放到这个虚拟环境里面，这样我们就不用担心各个环境之间的版本矛盾等问题。
-【注意2】我在正常django基础上，增加了一个**monitor**的文件夹，貌似是将页面的后端代码是插入到monitor文件夹的views文件中的，大家可以直接使用（如果不是的话，以你们自己的为准吧，然后大家可以在群里面讨论一下定一下）
+        1.'npm install'
+        
+        2.`npm run dev`
 
-        1. 创建虚拟环境**(因为虚拟环境是不能上传到git的，所以还是需要你们自己创建虚拟环境，但是创建好之后，虚拟环境内部的安装包互通，也就是我之前下载的django，在你们创建完虚拟环境并且激活后就可以直接使用)**
-                window： python -m venv venv **（第二个venv是我命名的虚拟环境的文件夹名)**
-                macOS / Linux：python3 -m venv venv **（第二个venv是我命名的虚拟环境的文件夹名)**
+后端：
+
+        1. 创建虚拟环境
+                window： python -m venv venv
+                macOS / Linux：python3 -m venv venv
+        
         2. 激活虚拟环境
                 Windows： venv\Scripts\activate
                 macOS / Linux：source venv/bin/activate
+        
         3. 安装依赖
-                pip install -r requirements.txt  **(这个依赖包，是我之前已经生成好的，并且将django放里面了，你们直接安装即可）**
+                pip install -r requirements.txt
