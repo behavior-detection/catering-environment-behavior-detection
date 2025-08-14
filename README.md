@@ -1,20 +1,48 @@
-# catering-environment-behavior-detection
-## 使用说明
-前端：
+# Catering Environment Behavior Detection
 
-        1.'npm install'
-        
-        2.`npm run dev`
+A web application with a Vue 3 + Vite frontend and a Django backend for behavior detection in catering environments.
 
-后端：
+## Tech Stack
+- Frontend: Vue 3, Vite (JavaScript)
+- Backend: Django (recommend 4.2 LTS for Python 3.9)
+- Database: SQLite (development)
+- OS: Windows/macOS/Linux
 
-        1. 创建虚拟环境
-                window： python -m venv venv
-                macOS / Linux：python3 -m venv venv
-        
-        2. 激活虚拟环境
-                Windows： venv\Scripts\activate
-                macOS / Linux：source venv/bin/activate
-        
-        3. 安装依赖
-                pip install -r requirements.txt
+## Project Structure
+- `frontend/`: Vue app
+- `backend/`: Django project
+
+## Prerequisites
+- Node.js ≥ 18 (with npm ≥ 9)
+- Python ≥ 3.9
+
+## Quick Start
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Build and preview:
+```bash
+npm run build
+npm run preview
+```
+
+### Backend
+```bash
+cd backend
+# (optional) create & activate venv
+python -m venv venv
+# Windows: venv\Scripts\activate
+# macOS/Linux: source venv/bin/activate
+
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
+
+## License
+MIT License. See `LICENSE`.
