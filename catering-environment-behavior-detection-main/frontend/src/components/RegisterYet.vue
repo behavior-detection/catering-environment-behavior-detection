@@ -57,12 +57,31 @@ export default {
 
 <style scoped>
 .register-yet-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
   padding: 20px;
 }
 
 .qualification-panel {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  text-align: center;
+}
+
+.qualification-panel h1 {
+  color: var(--color-primary-dark);
+  margin-bottom: 10px;
+  font-size: 2.5rem;
+}
+
+.qualification-panel > p {
+  color: var(--color-text-secondary);
+  margin-bottom: 40px;
+  font-size: 16px;
 }
 
 .upload-section {
@@ -70,23 +89,90 @@ export default {
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 30px;
   margin: 40px 0;
+  justify-items: center;
 }
 
 .upload-card {
   background: white;
-  border: 2px dashed #ddd;
-  border-radius: 12px;
+  border: 2px dashed var(--color-primary-light);
+  border-radius: var(--radius-lg);
   padding: 40px;
   text-align: center;
+  width: 100%;
+  max-width: 450px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.upload-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.upload-card h3 {
+  color: var(--color-text);
+  margin-bottom: 20px;
+  font-size: 1.25rem;
+}
+
+.upload-card button {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-card button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(135, 206, 235, 0.25);
+}
+
+.result-section {
+  background: var(--color-primary-lighter);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  margin: 40px auto;
+  max-width: 800px;
 }
 
 .submit-btn {
   padding: 16px 48px;
-  background: #42b883;
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 18px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(135, 206, 235, 0.3);
+}
+
+@media (max-width: 768px) {
+  .upload-section {
+    grid-template-columns: 1fr;
+  }
+
+  .qualification-panel h1 {
+    font-size: 2rem;
+  }
 }
 </style>

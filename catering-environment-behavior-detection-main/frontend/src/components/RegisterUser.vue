@@ -175,36 +175,56 @@ export default {
 
 <style scoped>
 .register-user-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 20px;
 }
 
 .register-panel {
   background: white;
-  padding: 40px;
-  border-radius: 20px;
-  width: 500px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 50px 40px;
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+}
+
+.register-panel h1 {
+  color: var(--color-primary-dark);
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 2rem;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: 14px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(135, 206, 235, 0.1);
 }
 
 .email-group {
@@ -218,41 +238,91 @@ export default {
 
 .email-group button {
   padding: 12px 20px;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  background: white;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-md);
   cursor: pointer;
   white-space: nowrap;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.email-group button:hover:not(:disabled) {
+  background: var(--color-primary-lighter);
+  border-color: var(--color-primary-dark);
+}
+
+.email-group button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .password-strength {
-  margin-top: 8px;
-  font-size: 14px;
+  margin-top: 12px;
+  background: var(--color-primary-lighter);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
 }
 
 .password-strength div {
-  color: #999;
+  color: var(--color-text-light);
   padding: 4px 0;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.password-strength div::before {
+  content: '○';
+  margin-right: 8px;
+  font-size: 14px;
 }
 
 .password-strength div.valid {
-  color: #28a745;
+  color: var(--color-success);
+}
+
+.password-strength div.valid::before {
+  content: '✓';
+  color: var(--color-success);
 }
 
 .submit-btn {
   width: 100%;
-  padding: 16px;
-  background: #42b883;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 18px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 20px;
+  margin-top: 30px;
+  transition: all 0.3s ease;
 }
 
 .submit-btn:hover {
-  background: #35495e;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(135, 206, 235, 0.25);
+}
+
+@media (max-width: 480px) {
+  .register-panel {
+    padding: 40px 30px;
+  }
+
+  .register-panel h1 {
+    font-size: 1.5rem;
+  }
+
+  .email-group {
+    flex-direction: column;
+  }
+
+  .email-group button {
+    width: 100%;
+  }
 }
 </style>

@@ -1,5 +1,12 @@
 <template>
   <main>
+    <!-- 全局返回按钮 -->
+    <div v-if="showBackButton" class="back-button-wrapper">
+      <button @click="goBack" class="global-back-btn">
+        返回
+      </button>
+    </div>
+
     <!-- 根据当前组件状态显示不同的组件 -->
     <component
       v-if="!isLoginComponent"
@@ -106,13 +113,19 @@ export default {
     // 是否显示注册链接
     showSignup() {
       return true  // 所有用户类型都可以注册
+    },
+
+    // 是否显示返回按钮
+    showBackButton() {
+      // IdentityDivision不显示返回按钮
+      return this.currentComponent !== 'IdentityDivision'
     }
   },
   methods: {
     // 处理跳转到登录页面
     handleGoToLogin(type) {
       this.userType = type
-      this.previousComponent = 'IdentityDivision'
+      this.previousComponent = this.currentComponent
       this.currentComponent = 'Login' // 统一使用Login标识
     },
 
@@ -190,10 +203,16 @@ export default {
     // 返回上一个组件
     goBack() {
       if (this.previousComponent) {
+        // 如果是从登录页返回，需要清除userType
+        if (this.isLoginComponent) {
+          this.userType = ''
+        }
         this.currentComponent = this.previousComponent
         this.previousComponent = null
       } else {
+        // 默认返回到身份选择页
         this.currentComponent = 'IdentityDivision'
+        this.userType = ''
       }
     }
   }
@@ -205,5 +224,76 @@ main {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* 返回按钮样式 */
+.back-button-wrapper {
+  position: absolute;
+  top: 80px; /* 假设TopNav高度为60px，留出20px间距 */
+  left: 20px;
+  z-index: 999; /* 确保在组件之上，但在TopNav之下 */
+}
+
+.global-back-btn {
+  padding: 12px 28px;
+  background: white;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary-light);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.global-back-btn:hover {
+  background: var(--color-primary-lighter);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 添加进入动画 */
+.back-button-wrapper {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .back-button-wrapper {
+    top: 70px; /* 移动端TopNav可能高度不同 */
+    left: 10px;
+  }
+
+  .global-back-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+  .back-button-wrapper {
+    top: 60px;
+    left: 10px;
+  }
+
+  .global-back-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
 }
 </style>
