@@ -32,6 +32,7 @@ npm run preview
 ```
 
 ### Janus Analysis Service
+```bash
 Download Janus-Pro-1B (or Janus-Pro-7B): https://huggingface.co/deepseek-ai/Janus-Pro-1B/tree/main
 CATERING-ENVIRONMENT-BEHAVIOR-DETECTION-MAIN\BACKEND\MODELS
 │  l_version_1_300.pt
@@ -48,7 +49,6 @@ CATERING-ENVIRONMENT-BEHAVIOR-DETECTION-MAIN\BACKEND\MODELS
         special_tokens_map.json
         tokenizer.json
         tokenizer_config.json
-```bash
 cd backend
 cd Janus
 pip install -e .
