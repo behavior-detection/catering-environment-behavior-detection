@@ -46,7 +46,7 @@ export default {
 
 .main-content {
     flex: 1; 
-    padding: 20px;
+    padding: 0px;
     background-color: #f8f8f8;
     overflow: auto;
 }

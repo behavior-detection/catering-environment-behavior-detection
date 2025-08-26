@@ -6,7 +6,7 @@
     <div class="nav-items">
       <router-link to="/" exact-active-class="active-link">首页</router-link>
       <router-link to="/page2" active-class="active-link">我的设备</router-link>
-      <router-link to="/page3" active-class="active-link">账号管理</router-link>   
+      <!--<router-link to="/page3" active-class="active-link">账号管理</router-link>-->
     </div>
   </nav>
 </template>

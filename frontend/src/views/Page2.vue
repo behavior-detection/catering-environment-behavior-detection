@@ -43,10 +43,13 @@ export default {
 <style scoped>
 .page2-layout {
   display: flex;
+  height: calc(100vh - 60px);
 }
 
 .main-content {
   flex: 1;
   padding: 20px;
+  background-color: #f8f9fa;
+  overflow: auto;
 }
 </style>
