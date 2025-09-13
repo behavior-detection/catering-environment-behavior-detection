@@ -1,6 +1,8 @@
 <template>
   <div class="sidebar">
-    <h2 class="sidebar-title">我的设备</h2>
+    <!-- 根据路由动态显示标题 -->
+    <h2 class="sidebar-title">{{ sidebarTitle }}</h2>
+
     <div
       v-for="(item, index) in options"
       :key="index"
@@ -10,20 +12,28 @@
     >
       <i :class="item.icon" class="sidebar-icon"></i>
       <span class="sidebar-text">{{ item.label }}</span>
-      <i :class="activeIndex === index ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" class="sidebar-arrow"></i>
+      <i
+        :class="activeIndex === index ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"
+        class="sidebar-arrow"
+      ></i>
     </div>
-    <img :src="ridebike" class="ridebike-image"/>
+
+    <!-- 保留原本的图片，不动 -->
+    <img :src="ridebike" class="ridebike-image" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import ridebike from '@/assets/ridebike.svg'
 
-const emit = defineEmits(['select']) // 定义一个事件用于向父组件传递选中的组件名称,声明事件
-
+const emit = defineEmits(['select'])
 const activeIndex = ref(null)
-const options = [
+const route = useRoute()
+
+// 定义两组不同的选项
+const deviceOptions = [
   { label: '寻找设备', icon: 'fas fa-laptop', component: 'FindDevice' },
   { label: '实时监测', icon: 'fas fa-mobile-alt', component: 'MonitorLive' },
   { label: '历史视频与数据', icon: 'fas fa-tablet-alt', component: 'HistoricalData' },
@@ -31,21 +41,41 @@ const options = [
   { label: '设备管理', icon: 'fas fa-info-circle', component: 'DeviceManagement' }
 ]
 
+const accountOptions = [
+  { label: '修改账号信息', icon: 'fas fa-user-edit', component: 'EditAccount' },
+  { label: '退出登录', icon: 'fas fa-sign-out-alt', component: 'Logout' }
+]
+
+// 根据当前路由动态选择 options
+const options = computed(() => {
+  if (route.path === '/page3') {
+    return accountOptions
+  }
+  return deviceOptions
+})
+
+// 根据路由动态切换标题
+const sidebarTitle = computed(() => {
+  return route.path === '/page3' ? '账号管理' : '我的设备'
+})
+
 function selectOption(index, componentName) {
   activeIndex.value = index
-  emit('select', componentName)  //如果你需要向父组件通信
+  emit('select', componentName)
 }
 </script>
 
 
 
+
 <style scoped>
 .sidebar {
+  position: relative;       /* 父容器设为相对定位 */
   width: 231px;
-  background-color: #e6f4ff; /* 浅蓝色背景 */
+  background-color: #e6f4ff;
   padding: 16px;
   box-sizing: border-box;
-  height: calc(100vh - 60px); /* 减去顶部导航栏高度，填满剩余屏幕 */
+  height: calc(100vh - 60px); /* 保持全高 */
 }
 
 .sidebar-title {
@@ -78,10 +108,12 @@ function selectOption(index, componentName) {
 }
 
 .ridebike-image {
+  position: absolute;  /* 绝对定位 */
+  bottom: 40px;        /* 距离底部 20px，可自行调整 */
+  left: 50%;           /* 水平居中 */
+  transform: translateX(-50%);
   width: 80%;
   height: auto;
-  margin: 230px auto 0 auto; /* 顶部 230px，左右居中 */
-  display: block;
 }
 </style>
 
