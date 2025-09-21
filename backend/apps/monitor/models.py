@@ -148,6 +148,54 @@ class AIQueryHistory(models.Model):
         return f"{self.query[:50]}... - {self.created_at}"
 
 
+class ChatConversation(models.Model):
+    """聊天对话模型 - 可选，如果完全使用Redis可以不用这个"""
+    conversation_id = models.CharField(max_length=100, unique=True, verbose_name="对话ID")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="用户")
+    title = models.CharField(max_length=200, default="新对话", verbose_name="对话标题")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    is_active = models.BooleanField(default=True, verbose_name="是否活跃")
+
+    class Meta:
+        db_table = 'chat_conversations'
+        verbose_name = "聊天对话"
+        verbose_name_plural = "聊天对话"
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.conversation_id} - {self.title}"
+
+
+class ChatMessage(models.Model):
+    """聊天消息模型 - 可选，主要用Redis存储"""
+    MESSAGE_TYPE_CHOICES = [
+        ('user', '用户消息'),
+        ('ai', 'AI回复'),
+        ('system', '系统消息'),
+    ]
+
+    conversation = models.ForeignKey(ChatConversation, on_delete=models.CASCADE, verbose_name="对话")
+    message_id = models.CharField(max_length=100, verbose_name="消息ID")
+    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPE_CHOICES, verbose_name="消息类型")
+    content = models.TextField(verbose_name="消息内容")
+    metadata = models.JSONField(default=dict, blank=True, verbose_name="元数据")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
+    class Meta:
+        db_table = 'chat_messages'
+        verbose_name = "聊天消息"
+        verbose_name_plural = "聊天消息"
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['conversation', 'created_at']),
+            models.Index(fields=['message_id']),
+        ]
+
+    def __str__(self):
+        return f"{self.message_type} - {self.content[:50]}..."
+
+
 class SystemConfig(models.Model):
     """系统配置模型"""
     key = models.CharField(max_length=100, unique=True, verbose_name="配置键")
