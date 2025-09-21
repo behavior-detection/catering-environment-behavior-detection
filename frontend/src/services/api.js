@@ -9,8 +9,6 @@ const api = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-    // 注意：Access-Control-* 相关的 headers 是由服务器在响应中设置的，
-    // 前端不应该在请求中发送它们，因此已移除。
   },
   // 启用跨域cookies (如果您的登录依赖Cookie/Session，请设为 true)
   withCredentials: false
@@ -58,8 +56,6 @@ api.interceptors.response.use(
   }
 )
 
-// --- ↓↓↓ 关键修改：更新所有API路径以匹配新的后端URL结构 /api/monitor/... ↓↓↓ ---
-
 // 违规数据相关API
 export const violationsAPI = {
   // 获取违规数据分析
@@ -99,6 +95,15 @@ export const violationsAPI = {
 
   // 清空违规数据
   clearData: () => api.post('/api/monitor/violations/clear/'),
+
+  // 批量上传违规数据
+  batchUpload: (data) => api.post('/api/monitor/violations/batch-upload/', data),
+
+  // 导出违规数据
+  exportData: (params) => api.get('/api/monitor/violations/export/', { params }),
+
+  // 获取违规趋势
+  getTrends: (params) => api.get('/api/monitor/violations/trends/', { params }),
 }
 
 // AI查询相关API
@@ -108,6 +113,62 @@ export const aiAPI = {
 
   // 获取查询历史
   getHistory: (params) => api.get('/api/monitor/ai-query/history/', { params }),
+
+  // 增强AI查询 (支持对话模式)
+  enhancedQuery: (data) => api.post('/api/monitor/ai-query/enhanced/', data),
+}
+
+// === 聊天相关API ===
+export const chatAPI = {
+  // 聊天查询 (主要方法 - 支持多轮对话)
+  query: (data) => {
+    return api.post('/api/monitor/chat/query/', data)
+  },
+
+  enhancedQuery(data) {
+    return axios.post('/api/monitor/ai-query/enhanced/', data)
+  },
+
+  // 对话管理
+  conversation: {
+    // 创建新对话
+    create: (data = {}) => {
+      return api.post('/api/monitor/chat/conversation/create/', data)
+    },
+
+    // 获取对话历史
+    getHistory: (conversationId, params = {}) => {
+      return api.get(`/api/monitor/chat/conversation/${conversationId}/history/`, { params })
+    },
+
+    // 清空指定对话
+    clear: (conversationId) => {
+      return api.delete(`/api/monitor/chat/conversation/${conversationId}/clear/`)
+    },
+
+    // 发送消息到指定对话 (用于测试)
+    sendMessage: (conversationId, data) => {
+      return api.post(`/api/monitor/chat/conversation/${conversationId}/message/`, data)
+    },
+
+    // 获取活跃对话列表
+    getActive: (params = {}) => {
+      return api.get('/api/monitor/chat/conversations/active/', { params })
+    }
+  },
+
+  // 聊天系统状态
+  status: {
+    // 获取聊天系统综合状态
+    getChatStatus: () => {
+      return api.get('/api/monitor/chat/status/')
+    },
+
+    // 获取Redis状态
+    getRedisStatus: () => {
+      return api.get('/api/monitor/chat/redis-status/')
+    }
+  }
 }
 
 // 系统相关API
@@ -117,6 +178,24 @@ export const systemAPI = {
 
   // 系统状态
   status: () => api.get('/api/monitor/status/'),
+
+  // 聊天系统状态 (快捷方法)
+  getChatStatus: () => chatAPI.status.getChatStatus(),
+}
+
+export const apiService = {
+  // 基础HTTP方法
+  get: (url, config) => api.get(url, config),
+  post: (url, data, config) => api.post(url, data, config),
+  put: (url, data, config) => api.put(url, data, config),
+  delete: (url, config) => api.delete(url, config),
+  patch: (url, data, config) => api.patch(url, data, config),
+
+  // 专门的API方法
+  violations: violationsAPI,
+  ai: aiAPI,
+  chat: chatAPI,
+  system: systemAPI
 }
 
 // 导出默认API实例
