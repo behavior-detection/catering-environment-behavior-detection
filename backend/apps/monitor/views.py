@@ -10,20 +10,26 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from datetime import datetime, timedelta
 import json
-import requests
+import re
 import logging
 import time
 import os
-import re
 import uuid
 from django.conf import settings
 import redis
 import hashlib
 from asgiref.sync import sync_to_async
+from collections import defaultdict
 
 from .models import DeviceWarehouse, WarehouseFile, ViolationRecord, AIAnalysisReport, AIQueryHistory, SystemConfig, PermissionRequest
-from .services import JanusAIService, ViolationAnalyzer, SystemMonitor, ViolationDataProcessor, AIQueryProcessor
+from .services import JanusAIService, SystemMonitor, ViolationDataProcessor, AIQueryProcessor
 from apps.login.api.models import Manager, Visitor
+from .janus_pro_service import LanguageModelService
+from typing import Dict, List, Any
+from .integrated_smart_router import IntelligentQueryRouter
+from .apps import get_shared_router
+from django.http import StreamingHttpResponse
+from .enhanced_basic_processor import ViolationAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -752,182 +758,6 @@ def handle_mp4_file(file_path, file_record, download, stream, request):
             'message': f'处理视频文件失败: {str(e)}'
         }, status=500)
 
-def handle_json_file(file_path, file_record, download):
-    """处理JSON文件 - 带二进制保护"""
-    logger.info(f"[JSON处理器] 开始处理: {file_path}")
-
-    try:
-        # 🔧 二进制文件保护
-        with open(file_path, 'rb') as f:
-            header = f.read(12)
-
-            # 检测MP4
-            if len(header) >= 8 and header[4:8] == b'ftyp':
-                logger.error(f"[JSON处理器] 错误: 这是MP4文件!")
-                return JsonResponse({
-                    'success': False,
-                    'message': '该文件是视频文件(MP4),无法以JSON格式查看。请使用视频播放功能。',
-                    'file_type_mismatch': True,
-                    'actual_type': 'mp4',
-                    'suggestion': '请联系管理员更新文件类型标记'
-                }, status=400)
-
-            # 检测二进制
-            text_chars = set(range(32, 127)) | {9, 10, 13}
-            binary_count = sum(1 for byte in header if byte not in text_chars)
-
-            if binary_count > 6:
-                logger.error(f"[JSON处理器] 二进制文件检测: {binary_count}/12 非文本字节")
-                return JsonResponse({
-                    'success': False,
-                    'message': '该文件是二进制格式,无法以文本方式查看',
-                    'file_type_mismatch': True,
-                    'suggestion': '该文件可能不是JSON格式'
-                }, status=400)
-
-        # 下载模式
-        if download:
-            logger.info(f"[JSON处理器] 下载模式")
-            with open(file_path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type='application/json')
-                response['Content-Disposition'] = f'attachment; filename="{file_record.file_name}"'
-                return response
-
-        # 读取JSON
-        logger.info(f"[JSON处理器] 尝试解析JSON")
-        content = None
-        encodings = ['utf-8', 'utf-8-sig', 'gbk', 'gb2312']
-        last_error = None
-
-        for encoding in encodings:
-            try:
-                with open(file_path, 'r', encoding=encoding) as f:
-                    content = json.load(f)
-                logger.info(f"[JSON处理器] 成功使用 {encoding} 编码")
-                break
-            except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                last_error = e
-                continue
-
-        if content is None:
-            logger.error(f"[JSON处理器] 所有编码失败: {last_error}")
-            return JsonResponse({
-                'success': False,
-                'message': f'无法读取JSON内容。错误: {str(last_error)}',
-                'encodings_tried': encodings
-            }, status=400)
-
-        logger.info(f"[JSON处理器] 成功返回JSON内容")
-        return JsonResponse({
-            'success': True,
-            'file_type': 'json',
-            'content': content,
-            'file_info': {
-                'name': file_record.file_name,
-                'size': file_record.file_size,
-                'upload_date': file_record.upload_date.isoformat(),
-                'created_at': file_record.created_at.isoformat()
-            }
-        })
-
-    except Exception as e:
-        logger.error(f"[JSON处理器] 处理失败: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'message': f'处理文件失败: {str(e)}'
-        }, status=500)
-
-
-def handle_mp4_file(file_path, file_record, download, stream, request):
-    """处理MP4视频文件"""
-    logger.info(f"[MP4处理器] 开始处理: {file_path}")
-
-    try:
-        # 验证确实是MP4
-        with open(file_path, 'rb') as f:
-            header = f.read(12)
-            if len(header) < 8 or header[4:8] != b'ftyp':
-                logger.error(f"[MP4处理器] MP4格式验证失败")
-                return JsonResponse({
-                    'success': False,
-                    'message': '文件格式验证失败:不是有效的MP4视频文件',
-                    'file_type_mismatch': True
-                }, status=400)
-
-        file_size = os.path.getsize(file_path)
-        logger.info(f"[MP4处理器] 文件大小: {file_size} bytes")
-
-        # 下载模式
-        if download:
-            logger.info(f"[MP4处理器] 下载模式")
-            from django.http import FileResponse
-            response = FileResponse(
-                open(file_path, 'rb'),
-                content_type='video/mp4'
-            )
-            response['Content-Disposition'] = f'attachment; filename="{file_record.file_name}"'
-            response['Content-Length'] = file_size
-            return response
-
-        # 流式播放
-        if stream:
-            logger.info(f"[MP4处理器] 流式播放模式")
-            import re
-            range_header = request.META.get('HTTP_RANGE', '').strip()
-            range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
-
-            if range_match:
-                start = int(range_match.group(1))
-                end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
-                length = end - start + 1
-
-                logger.info(f"[MP4处理器] Range请求: {start}-{end}/{file_size}")
-
-                with open(file_path, 'rb') as f:
-                    f.seek(start)
-                    data = f.read(length)
-
-                from django.http import HttpResponse
-                response = HttpResponse(data, content_type='video/mp4', status=206)
-                response['Content-Range'] = f'bytes {start}-{end}/{file_size}'
-                response['Content-Length'] = length
-                response['Accept-Ranges'] = 'bytes'
-                return response
-            else:
-                from django.http import FileResponse
-                response = FileResponse(
-                    open(file_path, 'rb'),
-                    content_type='video/mp4'
-                )
-                response['Content-Length'] = file_size
-                response['Accept-Ranges'] = 'bytes'
-                return response
-
-        # 默认返回文件信息
-        logger.info(f"[MP4处理器] 返回文件信息")
-        return JsonResponse({
-            'success': True,
-            'file_type': 'mp4',
-            'file_info': {
-                'id': file_record.id,
-                'name': file_record.file_name,
-                'size': file_record.file_size,
-                'upload_date': file_record.upload_date.isoformat(),
-                'created_at': file_record.created_at.isoformat(),
-                'file_type': 'mp4'
-            },
-            'stream_url': f'/api/monitor/files/{file_record.id}/content/?eid={file_record.eid}&stream=true',
-            'download_url': f'/api/monitor/files/{file_record.id}/content/?eid={file_record.eid}&download=true'
-        })
-
-    except Exception as e:
-        logger.error(f"[MP4处理器] 处理失败: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'message': f'处理视频文件失败: {str(e)}'
-        }, status=500)
-
-
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_files_by_date(request):
@@ -1283,6 +1113,458 @@ def system_status(request):
 
 # ====================== 违规数据相关 API (保留原有实现) ======================
 
+class SmartQueryProcessor:
+    """智能查询处理器 - 支持多维度筛选"""
+
+    def __init__(self):
+        # 违规类型映射
+        self.violation_type_mapping = {
+            # 中文 -> 数据库字段
+            '口罩': ['mask', 'no_mask'],
+            '口罩违规': ['mask', 'no_mask'],
+            '未佩戴口罩': ['no_mask'],
+            '工作帽': ['hat', 'no_hat'],
+            '帽子': ['hat', 'no_hat'],
+            '工作帽违规': ['hat', 'no_hat'],
+            '未佩戴工作帽': ['no_hat'],
+            '吸烟': ['smoking', 'cigarette'],
+            '抽烟': ['smoking', 'cigarette'],
+            '吸烟行为': ['smoking', 'cigarette'],
+            '手机': ['phone', 'phone_usage'],
+            '手机使用': ['phone', 'phone_usage'],
+            '打电话': ['phone', 'phone_usage'],
+            '鼠患': ['mouse', 'mouse_infestation'],
+            '老鼠': ['mouse', 'mouse_infestation'],
+            '工作服': ['uniform', 'uniform_violation'],
+            '制服': ['uniform', 'uniform_violation'],
+            '着装': ['uniform', 'uniform_violation'],
+        }
+
+        # 中文名称映射（用于显示）
+        self.display_names = {
+            'mask': '口罩违规',
+            'no_mask': '未佩戴口罩',
+            'hat': '工作帽违规',
+            'no_hat': '未佩戴工作帽',
+            'smoking': '吸烟行为',
+            'cigarette': '吸烟',
+            'phone': '手机使用',
+            'phone_usage': '使用手机',
+            'mouse': '鼠患问题',
+            'mouse_infestation': '鼠患',
+            'uniform': '工作服问题',
+            'uniform_violation': '工作服违规'
+        }
+
+    def parse_query(self, query: str) -> dict:
+        """解析查询，提取所有筛选条件"""
+        query_lower = query.lower()
+
+        filters = {
+            'time_filter': self._extract_time_filter(query_lower),
+            'camera_filter': self._extract_camera_filter(query_lower),
+            'violation_type_filter': self._extract_violation_type_filter(query_lower),
+            'query_intent': self._determine_query_intent(query_lower)
+        }
+
+        return filters
+
+    def _extract_time_filter(self, query: str) -> dict:
+        """提取时间筛选条件"""
+        time_patterns = [
+            # 过去X天
+            (r'过去\s*(\d+)\s*天', lambda m: int(m.group(1)) * 24),
+            (r'最近\s*(\d+)\s*天', lambda m: int(m.group(1)) * 24),
+            (r'近\s*(\d+)\s*天', lambda m: int(m.group(1)) * 24),
+
+            # 过去X小时
+            (r'过去\s*(\d+)\s*小时', lambda m: int(m.group(1))),
+            (r'最近\s*(\d+)\s*小时', lambda m: int(m.group(1))),
+
+            # 过去X周
+            (r'过去\s*(\d+)\s*周', lambda m: int(m.group(1)) * 7 * 24),
+            (r'最近\s*(\d+)\s*周', lambda m: int(m.group(1)) * 7 * 24),
+
+            # 过去X个月
+            (r'过去\s*(\d+)\s*个?月', lambda m: int(m.group(1)) * 30 * 24),
+            (r'最近\s*(\d+)\s*个?月', lambda m: int(m.group(1)) * 30 * 24),
+
+            # 特定时间词汇
+            (r'今天|当天', lambda m: 24),
+            (r'昨天', lambda m: 48),
+            (r'本周|这周', lambda m: 7 * 24),
+            (r'上周', lambda m: 14 * 24),
+            (r'本月|这个月', lambda m: 30 * 24),
+            (r'上月|上个月', lambda m: 60 * 24),
+
+            # 所有时间
+            (r'所有时间|全部时间|历史|全部数据', lambda m: 0)
+        ]
+
+        for pattern, converter in time_patterns:
+            match = re.search(pattern, query)
+            if match:
+                hours = converter(match)
+                return {
+                    'hours': hours,
+                    'description': match.group(0),
+                    'is_all_time': hours == 0
+                }
+
+        # 默认24小时
+        return {'hours': 24, 'description': '最近24小时', 'is_all_time': False}
+
+    def _extract_camera_filter(self, query: str) -> dict:
+        """提取摄像头筛选条件"""
+        patterns = [
+            r'摄像头\s*cam[_-]?(\d+)',
+            r'cam[_-]?(\d+)\s*摄像头',
+            r'\bcam[_-]?(\d+)\b',
+            r'摄像头\s*([a-z]\d+)',
+            r'([a-z]\d+)\s*摄像头',
+            r'\b([a-z]\d+)\b'
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, query)
+            if match:
+                extracted = match.group(1)
+                # 转换为数据库格式
+                if extracted.isdigit():
+                    camera_id = f"cam_{extracted}"
+                else:
+                    camera_id = extracted.lower()
+
+                return {
+                    'camera_id': camera_id,
+                    'original_text': match.group(0)
+                }
+
+        return None
+
+    def _extract_violation_type_filter(self, query: str) -> dict:
+        """提取违规类型筛选条件"""
+        for chinese_name, db_fields in self.violation_type_mapping.items():
+            if chinese_name in query:
+                return {
+                    'chinese_name': chinese_name,
+                    'db_fields': db_fields,
+                    'primary_field': db_fields[0]
+                }
+
+        return None
+
+    def _determine_query_intent(self, query: str) -> str:
+        """确定查询意图"""
+        if '次数' in query or '多少次' in query:
+            return 'count_query'
+        elif '哪种' in query or '什么类型' in query or '类型' in query:
+            return 'type_analysis'
+        elif '哪个摄像头' in query or '摄像头.*最多' in query:
+            return 'camera_ranking'
+        elif '分析' in query or '统计' in query:
+            return 'analysis'
+        elif '趋势' in query or '变化' in query:
+            return 'trend_analysis'
+        else:
+            return 'general_query'
+
+    def process_query(self, query: str) -> str:
+        """处理查询并返回结果"""
+        filters = self.parse_query(query)
+
+        try:
+            from .models import ViolationRecord
+
+            # 构建基础查询
+            queryset = ViolationRecord.objects.all()
+
+            # 应用时间筛选
+            time_filter = filters['time_filter']
+            if not time_filter['is_all_time']:
+                time_threshold = timezone.now() - timedelta(hours=time_filter['hours'])
+                queryset = queryset.filter(detection_timestamp__gte=time_threshold)
+
+            # 应用摄像头筛选
+            camera_filter = filters['camera_filter']
+            if camera_filter:
+                queryset = queryset.filter(camera_id=camera_filter['camera_id'])
+
+            # 根据查询意图处理
+            intent = filters['query_intent']
+            violation_type_filter = filters['violation_type_filter']
+
+            if intent == 'count_query' and violation_type_filter:
+                return self._handle_count_query(
+                    queryset, filters, violation_type_filter, camera_filter, time_filter
+                )
+            elif intent == 'type_analysis':
+                return self._handle_type_analysis(queryset, filters, camera_filter, time_filter)
+            elif intent == 'camera_ranking':
+                return self._handle_camera_ranking(queryset, time_filter)
+            else:
+                return self._handle_general_query(queryset, filters, time_filter)
+
+        except Exception as e:
+            logger.error(f"查询处理失败: {e}")
+            return f"处理查询时遇到错误: {str(e)}"
+
+    def _handle_count_query(self, queryset, filters, violation_type_filter, camera_filter, time_filter):
+        """处理计数查询"""
+        records = list(queryset)
+        if not records:
+            return f"在{time_filter['description']}内未找到相关数据。"
+
+        # 统计特定违规类型的次数
+        target_fields = violation_type_filter['db_fields']
+        total_count = 0
+
+        for record in records:
+            try:
+                violations = record.violation_data.get('violations', {})
+                for field in target_fields:
+                    if field in violations:
+                        count = violations[field]
+                        if isinstance(count, (int, float)) and count > 0:
+                            total_count += count
+            except:
+                continue
+
+        # 生成答案
+        camera_desc = f"{camera_filter['camera_id']}摄像头" if camera_filter else "所有摄像头"
+        violation_name = violation_type_filter['chinese_name']
+
+        answer = f"在{time_filter['description']}内，{camera_desc}的{violation_name}次数：{total_count}次"
+
+        # 添加统计信息
+        total_records = len(records)
+        total_violations = sum(record.total_violations for record in records)
+        if total_violations > 0:
+            percentage = (total_count / total_violations * 100)
+            answer += f"\n\n统计详情："
+            answer += f"\n• 总记录数：{total_records}条"
+            answer += f"\n• 总违规次数：{total_violations}次"
+            answer += f"\n• {violation_name}占比：{percentage:.1f}%"
+
+        return answer
+
+    def _handle_type_analysis(self, queryset, filters, camera_filter, time_filter):
+        """处理违规类型分析查询"""
+        records = list(queryset)
+        if not records:
+            return f"在{time_filter['description']}内未找到相关数据。"
+
+        # 统计所有违规类型
+        violation_stats = defaultdict(int)
+        total_violations = 0
+
+        for record in records:
+            try:
+                violations = record.violation_data.get('violations', {})
+                for vtype, count in violations.items():
+                    if isinstance(count, (int, float)) and count > 0:
+                        violation_stats[vtype] += count
+                        total_violations += count
+            except:
+                continue
+
+        if not violation_stats:
+            return f"在{time_filter['description']}内未找到具体的违规类型数据。"
+
+        # 排序并生成答案
+        sorted_violations = sorted(violation_stats.items(), key=lambda x: x[1], reverse=True)
+
+        camera_desc = f"{camera_filter['camera_id']}摄像头" if camera_filter else "所有摄像头"
+
+        answer = f"在{time_filter['description']}内，{camera_desc}的违规类型分析：\n\n"
+
+        # 显示最多的违规类型
+        top_type, top_count = sorted_violations[0]
+        top_name = self.display_names.get(top_type, top_type)
+        percentage = (top_count / total_violations * 100) if total_violations > 0 else 0
+
+        answer += f"违规最多的类型：{top_name}\n"
+        answer += f"违规次数：{top_count}次（占{percentage:.1f}%）\n"
+
+        # 显示其他类型
+        if len(sorted_violations) > 1:
+            answer += f"\n其他违规类型：\n"
+            for vtype, count in sorted_violations[1:min(4, len(sorted_violations))]:
+                name = self.display_names.get(vtype, vtype)
+                pct = (count / total_violations * 100)
+                answer += f"• {name}：{count}次（{pct:.1f}%）\n"
+
+        answer += f"\n总违规次数：{total_violations}次"
+        return answer
+
+    def _handle_camera_ranking(self, queryset, time_filter):
+        """处理摄像头排名查询"""
+        from django.db.models import Sum
+
+        camera_stats = queryset.values('camera_id').annotate(
+            total=Sum('total_violations')
+        ).filter(total__gt=0).order_by('-total')
+
+        if not camera_stats:
+            return f"在{time_filter['description']}内未找到摄像头违规数据。"
+
+        total_all_violations = sum(item['total'] for item in camera_stats)
+        top_camera = camera_stats[0]
+        percentage = (top_camera['total'] / total_all_violations * 100) if total_all_violations > 0 else 0
+
+        answer = f"在{time_filter['description']}内，摄像头违规排名：\n\n"
+        answer += f"违规最多：{top_camera['camera_id']}摄像头\n"
+        answer += f"违规次数：{top_camera['total']}次（占{percentage:.1f}%）\n"
+
+        # 显示前5名
+        if len(camera_stats) > 1:
+            answer += f"\n完整排名：\n"
+            for i, camera in enumerate(camera_stats[:5], 1):
+                pct = (camera['total'] / total_all_violations * 100)
+                answer += f"{i}. {camera['camera_id']}：{camera['total']}次（{pct:.1f}%）\n"
+
+        return answer
+
+    def _handle_general_query(self, queryset, filters, time_filter):
+        """处理通用查询"""
+        from django.db.models import Sum
+
+        total_records = queryset.count()
+        if total_records == 0:
+            return f"在{time_filter['description']}内未找到相关数据。"
+
+        total_violations = queryset.aggregate(Sum('total_violations'))['total_violations__sum'] or 0
+        camera_count = queryset.values('camera_id').distinct().count()
+
+        camera_filter = filters['camera_filter']
+        if camera_filter:
+            camera_desc = f"{camera_filter['camera_id']}摄像头"
+        else:
+            camera_desc = f"{camera_count}个摄像头"
+
+        answer = f"在{time_filter['description']}内，{camera_desc}的统计情况：\n\n"
+        answer += f"• 检测记录：{total_records}条\n"
+        answer += f"• 违规次数：{total_violations}次\n"
+
+        if not camera_filter and camera_count > 1:
+            answer += f"• 涉及摄像头：{camera_count}个\n"
+
+        return answer
+
+
+class OptimizedAIQueryHandler:
+    """优化的AI查询处理器 - 替换views.py中的相关函数"""
+
+    def __init__(self):
+        self.router = IntelligentQueryRouter()
+
+    def handle_ai_query_request(self, request_data: Dict) -> Dict[str, Any]:
+        """处理AI查询请求 - 替换views.py中的ai_query函数逻辑"""
+
+        query = request_data.get('query', '').strip()
+        context = request_data.get('context', {})
+
+        if not query:
+            return {
+                'success': False,
+                'message': '查询内容不能为空'
+            }
+
+        # 使用智能路由器处理
+        result = self.router.route_and_process(query, context)
+
+        # 添加时间戳
+        result['timestamp'] = timezone.now().isoformat()
+
+        return result
+
+    def handle_chat_query_request(self, conversation_id: str, user_message: str,
+                                  context: List[Dict] = None) -> Dict[str, Any]:
+        """处理聊天查询请求 - 集成对话上下文"""
+
+        # 分析对话上下文
+        enhanced_context = self._analyze_conversation_context(context, user_message)
+
+        # 使用智能路由处理
+        result = self.router.route_and_process(user_message, enhanced_context)
+
+        # 添加对话相关信息
+        result['conversation_id'] = conversation_id
+        result['context_info'] = enhanced_context
+
+        return result
+
+    def _analyze_conversation_context(self, context: List[Dict], current_message: str) -> Dict:
+        """分析对话上下文"""
+        if not context:
+            return {}
+
+        # 提取上下文中的关键信息
+        context_info = {
+            'previous_cameras': [],
+            'previous_violations': [],
+            'previous_time_ranges': [],
+            'conversation_focus': None
+        }
+
+        # 分析最近几条消息
+        for msg in context[-3:]:
+            if msg.get('type') == 'user':
+                msg_structure = self.router.structure_analyzer.analyze_query_structure(msg.get('content', ''))
+                context_info['previous_cameras'].extend(msg_structure.camera_filters)
+                context_info['previous_violations'].extend(msg_structure.violation_filters)
+                context_info['previous_time_ranges'].extend(msg_structure.time_filters)
+
+        # 去重
+        context_info['previous_cameras'] = list(set(context_info['previous_cameras']))
+        context_info['previous_violations'] = list(set(context_info['previous_violations']))
+        context_info['previous_time_ranges'] = list(set(context_info['previous_time_ranges']))
+
+        return context_info
+
+def handle_general_query(message: str, time_range_hours: int) -> str:
+    """处理通用查询"""
+    try:
+        from .models import ViolationRecord
+        from django.db.models import Sum
+
+        # 根据时间范围获取数据
+        if time_range_hours == 0 or '所有时间' in message:
+            records = ViolationRecord.objects.all()
+            time_desc = "所有历史数据"
+        else:
+            time_threshold = timezone.now() - timedelta(hours=time_range_hours)
+            records = ViolationRecord.objects.filter(detection_timestamp__gte=time_threshold)
+            time_desc = f"最近{time_range_hours}小时"
+
+        if not records.exists():
+            return f"在{time_desc}中未找到违规数据。"
+
+        # 检查是否询问摄像头排名
+        if '哪个摄像头' in message or '摄像头.*最多' in message:
+            # 统计各摄像头违规次数
+            camera_stats = records.values('camera_id').annotate(
+                total=Sum('total_violations')
+            ).order_by('-total')
+
+            if camera_stats:
+                top_camera = camera_stats[0]
+                total_all = sum(item['total'] for item in camera_stats)
+                percentage = (top_camera['total'] / total_all * 100) if total_all > 0 else 0
+                return f"在{time_desc}中，{top_camera['camera_id']}摄像头违规最多，共{top_camera['total']}次违规，占总违规的{percentage:.1f}%"
+
+        # 通用统计回答
+        total_records = records.count()
+        total_violations = records.aggregate(Sum('total_violations'))['total_violations__sum'] or 0
+        camera_count = records.values('camera_id').distinct().count()
+
+        return f"在{time_desc}中，共有{total_records}条记录，{total_violations}次违规，涉及{camera_count}个摄像头。"
+
+    except Exception as e:
+        logger.error(f"处理通用查询失败: {e}")
+        return f"处理查询时遇到错误: {str(e)}"
+
+
 def violations_dashboard(request):
     """违规数据监控仪表板页面"""
     return render(request, 'monitor/violations_dashboard.html')
@@ -1291,45 +1573,40 @@ def violations_dashboard(request):
 @csrf_exempt
 @require_http_methods(["GET"])
 def violations_analytics(request):
-    """获取违规数据分析 API - 修复版本"""
+    """获取违规数据分析API (供 HistoricalData.vue 使用)"""
     try:
-        # 获取查询参数
         time_range = request.GET.get('range', '24h')
         query_all = request.GET.get('all', 'false').lower() == 'true'
+        hours = 0 if query_all else {'1h': 1, '24h': 24, '7d': 168, '30d': 720}.get(time_range, 24)
 
-        logger.info(f"违规数据分析请求: range={time_range}, query_all={query_all}")
-
-        # 确定时间范围
-        hours = 0 if query_all else parse_time_range(time_range)
-
-        # 获取违规记录
         records = list(ViolationRecord.get_violations_by_time_range(hours))
 
-        # 构建响应数据
-        response_data = build_analytics_response(records, time_range, query_all)
+        # [核心修复] 实例化新的 ViolationAnalyzer
+        analyzer = ViolationAnalyzer()
+        response_data = analyzer.analyze_records(records, time_range, query_all)
 
-        logger.info(f"违规数据分析完成: {len(records)} 条记录")
-
-        return JsonResponse({
-            'success': True,
-            'data': response_data,
-            'debug_info': {
-                'records_count': len(records),
-                'time_range': time_range,
-                'hours': hours,
-                'query_all': query_all
-            }
-        })
+        logger.info(f"违规数据分析完成: {len(records)}条记录")
+        return JsonResponse({'success': True, 'data': response_data})
 
     except Exception as e:
-        logger.error(f"违规数据分析失败: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'message': f'分析失败: {str(e)}',
-            'error_details': str(e)
-        }, status=500)
+        logger.error(f"违规数据分析失败: {str(e)}")
+        return JsonResponse({'success': False, 'message': f'分析失败: {str(e)}'}, status=500)
 
 
+# 辅助函数
+def parse_time_range(time_range):
+    """解析时间范围参数"""
+    time_mapping = {
+        '1h': 1,
+        '24h': 24,
+        '7d': 24 * 7,
+        '30d': 24 * 30,
+        'all': 0
+    }
+    return time_mapping.get(time_range, 24)
+
+
+# --- 用于处理分析按钮的请求 ---
 @csrf_exempt
 def get_violations_by_eid(request):
     """根据 EID 获取违规数据（修复版本 - 支持中文日期格式）"""
@@ -1869,22 +2146,500 @@ def merge_violation_data(data1, data2):
     return data1
 
 
-def parse_time_range(time_range):
-    """解析时间范围参数"""
-    time_mapping = {
-        '1h': 1,
-        '24h': 24,
-        '7d': 24 * 7,
-        '30d': 24 * 30,
-        'all': 0
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def violations_list(request):
+    """获取违规记录列表API"""
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 20))
+        camera_id = request.GET.get('camera_id')
+
+        # 构建查询
+        queryset = ViolationRecord.objects.all()
+
+        if camera_id:
+            queryset = queryset.filter(camera_id=camera_id)
+
+        # 分页
+        paginator = Paginator(queryset, limit)
+        page_obj = paginator.get_page(page)
+
+        # 序列化数据
+        records = []
+        for record in page_obj:
+            records.append({
+                'id': record.id,
+                'camera_id': record.camera_id,
+                'detection_timestamp': record.detection_timestamp.isoformat(),
+                'violation_data': record.violation_data,
+                'image_path': record.image_path,
+                'total_violations': record.total_violations,
+                'created_at': record.created_at.isoformat()
+            })
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'records': records,
+                'pagination': {
+                    'current_page': page,
+                    'per_page': limit,
+                    'total': paginator.count,
+                    'total_pages': paginator.num_pages
+                }
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取违规记录列表失败: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'查询失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def violations_stats(request):
+    """获取违规统计数据API"""
+    try:
+        time_range = request.GET.get('range', '24h')
+        hours = parse_time_range(time_range)
+
+        # 获取时间范围内的记录
+        records = ViolationRecord.get_violations_by_time_range(hours)
+
+        # 基础统计
+        total_records = records.count()
+        total_violations = records.aggregate(Sum('total_violations'))['total_violations__sum'] or 0
+        active_cameras = records.values('camera_id').distinct().count()
+
+        # 按摄像头统计
+        camera_stats = records.values('camera_id').annotate(
+            camera_records=Count('id'),
+            camera_violations=Sum('total_violations')
+        ).order_by('-camera_violations')
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'time_range': time_range,
+                'summary': {
+                    'total_records': total_records,
+                    'total_violations': total_violations,
+                    'active_cameras': active_cameras,
+                    'avg_violations_per_record': round(total_violations / total_records, 2) if total_records > 0 else 0
+                },
+                'camera_breakdown': list(camera_stats)
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取违规统计失败: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'统计查询失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def clear_violations(request):
+    """清空违规数据API"""
+    try:
+        deleted_count = ViolationRecord.objects.count()
+        ViolationRecord.objects.all().delete()
+
+        logger.info(f"已清空 {deleted_count} 条违规记录")
+
+        return JsonResponse({
+            'success': True,
+            'message': f'成功清空 {deleted_count} 条违规记录',
+            'cleared_records': deleted_count,
+            'timestamp': timezone.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"清空违规数据失败: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'清空数据失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def export_violations_data(request):
+    """导出违规数据API"""
+    try:
+        import csv
+        from django.http import HttpResponse
+
+        time_range = request.GET.get('range', '24h')
+        format_type = request.GET.get('format', 'csv')  # csv, json
+
+        hours = parse_time_range(time_range)
+        records = ViolationRecord.get_violations_by_time_range(hours)
+
+        if format_type == 'json':
+            # JSON格式导出
+            data = []
+            for record in records:
+                data.append({
+                    'id': record.id,
+                    'camera_id': record.camera_id,
+                    'detection_timestamp': record.detection_timestamp.isoformat(),
+                    'violation_data': record.violation_data,
+                    'total_violations': record.total_violations,
+                    'created_at': record.created_at.isoformat()
+                })
+
+            response = HttpResponse(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                content_type='application/json; charset=utf-8'
+            )
+            response['Content-Disposition'] = f'attachment; filename="violations_data_{time_range}.json"'
+
+        else:
+            # CSV格式导出
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = f'attachment; filename="violations_data_{time_range}.csv"'
+
+            writer = csv.writer(response)
+            writer.writerow(['ID', '摄像头ID', '检测时间', '违规次数', '违规类型', '创建时间'])
+
+            for record in records:
+                violations_str = ', '.join([
+                    f"{k}:{v}" for k, v in record.formatted_violations.items()
+                ]) if record.formatted_violations else '无'
+
+                writer.writerow([
+                    record.id,
+                    record.camera_id,
+                    record.detection_timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                    record.total_violations,
+                    violations_str,
+                    record.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                ])
+
+        return response
+
+    except Exception as e:
+        logger.error(f"导出违规数据失败: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'导出失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_violation_trends(request):
+    """获取违规趋势数据API"""
+    try:
+        days = int(request.GET.get('days', 7))
+
+        # 获取指定天数的数据
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=days - 1)
+
+        # 按日期聚合数据
+        daily_data = []
+        for i in range(days):
+            current_date = start_date + timedelta(days=i)
+            next_date = current_date + timedelta(days=1)
+
+            day_records = ViolationRecord.objects.filter(
+                detection_timestamp__date=current_date
+            )
+
+            total_violations = day_records.aggregate(
+                Sum('total_violations')
+            )['total_violations__sum'] or 0
+
+            total_records = day_records.count()
+
+            # 按类型统计
+            violations_by_type = {}
+            for record in day_records:
+                for vtype, count in record.formatted_violations.items():
+                    violations_by_type[vtype] = violations_by_type.get(vtype, 0) + count
+
+            daily_data.append({
+                'date': current_date.isoformat(),
+                'total_violations': total_violations,
+                'total_records': total_records,
+                'violations_by_type': violations_by_type,
+                'avg_violations_per_record': round(total_violations / total_records, 2) if total_records > 0 else 0
+            })
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'period': f'{days}天',
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'daily_trends': daily_data,
+                'summary': {
+                    'total_violations': sum(d['total_violations'] for d in daily_data),
+                    'total_records': sum(d['total_records'] for d in daily_data),
+                    'avg_daily_violations': round(sum(d['total_violations'] for d in daily_data) / days, 2)
+                }
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取违规趋势失败: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'获取趋势数据失败: {str(e)}'
+        }, status=500)
+
+
+def _filter_by_cameras(result: Dict, camera_ids: List[str]) -> Dict:
+    """根据指定摄像头过滤结果"""
+    # 这里可以实现按摄像头过滤的逻辑
+    # 暂时返回原结果，可以根据需要进一步实现
+    return result
+
+
+def analyze_query_complexity(query: str) -> str:
+    """分析查询复杂度"""
+    query_lower = query.lower()
+
+    # 复杂查询特征
+    complex_features = [
+        r'哪个.*最多|哪个.*最少',  # 排序比较查询
+        r'比较.*违规率|违规率.*比较',  # 比率分析查询
+        r'趋势.*分析|分析.*趋势',  # 趋势分析查询
+        r'风险.*评估|评估.*风险',  # 风险评估查询
+        r'最近.*天.*哪个',  # 复合时间+比较查询
+        r'.*摄像头.*违规.*最多',  # 摄像头排序查询
+    ]
+
+    # 语义丰富特征
+    semantic_features = [
+        r'情况.*如何|如何.*情况',  # 情况分析
+        r'(今天|昨天|本周|本月).*违规',  # 明确时间范围
+        r'cam_\d+.*违规|违规.*cam_\d+',  # 特定摄像头查询
+    ]
+
+    complex_score = sum(1 for pattern in complex_features if re.search(pattern, query_lower))
+    semantic_score = sum(1 for pattern in semantic_features if re.search(pattern, query_lower))
+
+    if complex_score >= 1:
+        return 'complex'
+    elif semantic_score >= 1:
+        return 'semantic_rich'
+    else:
+        return 'simple'
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def janus_pro_status(request):
+    """
+    获取Janus-Pro服务（大模型）状态。
+    这是路由系统健康检查的一部分。
+    """
+    try:
+        # 正确做法：通过全局路由器访问其包含的模型服务
+        router = get_shared_router()
+        model_service = router.model_service
+
+        # 从模型服务中获取真实状态
+        status_info = {
+            'model_available': model_service.is_model_available(),
+            'model_id': getattr(model_service, 'model_id', 'N/A'),
+        }
+
+        return JsonResponse({
+            'success': True,
+            'janus_pro_status': status_info,
+            'timestamp': timezone.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"获取Janus-Pro状态失败: {e}")
+        return JsonResponse({'success': False, 'message': f'获取状态失败: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def smart_ai_query(request):
+    """
+    统一的智能AI查询入口，现在完全由路由器驱动决策。
+    """
+    try:
+        data = json.loads(request.body)
+        query = data.get('query', '').strip()
+        context = data.get('context', {})
+
+        if not query:
+            return JsonResponse({'success': False, 'message': '查询内容不能为空'}, status=400)
+
+        custom_time_range = data.get('custom_time_range', None)
+        logger.info(f"收到前端智能查詢: {query}, 自定义时间: {custom_time_range}")
+        router = get_shared_router()
+
+        # 调用路由器，它会返回一个决策结果
+        decision = router.route_and_process(query, context, custom_time_range)
+
+        if decision.get("is_stream"):
+            # --- 场景1：需要LLM生成，返回流式响应 ---
+            def event_stream():
+                stream_generator = router.model_service.generate_full_response_stream(
+                    decision["query"], decision["db_context"]
+                )
+                try:
+                    for token in stream_generator:
+                        yield f"data: {json.dumps({'token': token})}\n\n"
+                    yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                except Exception as e:
+                    logger.error(f"流式响应生成时出错: {e}")
+                    yield f"data: {json.dumps({'error': '模型生成时发生错误'})}\n\n"
+
+            response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+            response['Cache-Control'] = 'no-cache'
+            return response
+        else:
+            # --- 场景2：模板已处理，直接返回JSON ---
+            return JsonResponse(decision)
+
+    except Exception as e:
+        logger.error(f"智能查询处理失败: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'reply': '处理查询时发生错误。', 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def routing_system_status(request):
+    """獲取路由系統狀態 - 供前端檢查模型可用性"""
+    try:
+        router = get_shared_router()
+        # [修改] 呼叫新的 get_status 方法
+        janus_pro_status_str = router.model_service.get_status()
+
+        return JsonResponse({
+            'success': True,
+            'routing_status': {
+                # 'janus_pro_available' 仍可保留，用於簡單判斷
+                'janus_pro_available': janus_pro_status_str == 'LOADED',
+                # [新增] 提供詳細的狀態字串
+                'janus_pro_status': janus_pro_status_str,
+                'basic_processor_available': True,
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取路由系统状态失败: {e}")
+        return JsonResponse({'success': False, 'message': f'获取状态失败: {str(e)}'}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def analyze_query_structure(request):
+    """
+    分析查询结构 - 开发调试用。
+    注意：此函数在新架构下主要用于调试目的，展示旧的、基于非LLM的结构分析。
+    核心路由逻辑已不再依赖它。
+    """
+    try:
+        data = json.loads(request.body)
+        query = data.get('query', '').strip()
+
+        if not query:
+            return JsonResponse({'success': False, 'message': '查询内容不能为空'}, status=400)
+
+        # 正确做法：获取全局共享的路由器实例
+        router = get_shared_router()
+
+        # 使用路由器内部的结构分析器（如果需要的话）
+        # 注意：这里的 structure_analyzer 是旧的逻辑，新的路由依赖LLM NLU
+        structure = router.structured_processor.structure_analyzer.analyze_query_structure(query)
+
+        return JsonResponse({
+            'success': True,
+            'query': query,
+            'comment': 'This is a debug endpoint showing analysis from the rule-based structure analyzer.',
+            'structure_analysis': {
+                'is_structured': structure.is_structured,
+                'confidence': structure.confidence,
+                'time_filters': structure.time_filters,
+                'camera_filters': structure.camera_filters,
+                'violation_filters': structure.violation_filters,
+                'analysis_types': structure.analysis_types,
+                'metrics': structure.metrics
+            },
+            'timestamp': timezone.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"分析查询结构失败: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'message': f'分析失败: {str(e)}'}, status=500)
+
+
+# 兼容性函数 - 如果需要支持旧的API接口
+@csrf_exempt
+@require_http_methods(["POST"])
+def enhanced_ai_query_with_smart_routing(request):
+    """增强AI查询 - 兼容旧接口但使用新路由"""
+    try:
+        data = json.loads(request.body)
+        query = data.get('query', '').strip()
+        time_range_hours = data.get('time_range_hours', 24)
+
+        if not query:
+            return JsonResponse({
+                'success': False,
+                'message': '查询内容不能为空'
+            }, status=400)
+
+        # 转换为新格式的上下文
+        context = {
+            'time_range_hours': time_range_hours,
+            'legacy_api': True
+        }
+
+        # 调用智能路由处理
+        return smart_ai_query_internal(query, context, request.user)
+
+    except Exception as e:
+        logger.error(f"兼容接口处理失败: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'reply': '抱歉，处理您的查询时遇到了问题，请稍后再试。',
+            'error': str(e)
+        }, status=500)
+
+
+def smart_ai_query_internal(query: str, context: dict, user=None):
+    """内部智能查询处理函数"""
+    start_time = time.time()
+
+    router = IntelligentQueryRouter()
+    result = router.route_and_process(query, context)
+
+    processing_time = time.time() - start_time
+
+    # 格式化返回数据
+    response_data = {
+        'success': result.get('success', True),
+        'reply': result.get('reply', '处理失败'),
+        'routing_info': {
+            'processor': result.get('processor_used', 'unknown'),
+            'reason': result.get('routing_decision', {}).get('reason', ''),
+            'confidence': result.get('routing_decision', {}).get('confidence', 0.0),
+            'query_type': result.get('routing_decision', {}).get('factors', {}).get('query_type', 'unknown')
+        },
+        'processing_time': round(processing_time, 2),
+        'timestamp': timezone.now().isoformat(),
+        'analysis_method': result.get('processing_method', 'smart_routing')
     }
-    return time_mapping.get(time_range, 24)
+
+    return JsonResponse(response_data)
 
 
-def build_analytics_response(records, time_range, query_all):
-    """构建分析响应数据"""
-    analyzer = ViolationAnalyzer()
-    return analyzer.analyze_records(records, time_range, query_all)
 
 
 @csrf_exempt
@@ -1950,38 +2705,8 @@ def save_violation_record(request):
 
 
 @csrf_exempt
-def violations_list(request):
-    """违规记录列表"""
-    return JsonResponse({'success': True, 'message': '功能待实现'})
-
-
-@csrf_exempt
-def violations_stats(request):
-    """违规统计"""
-    return JsonResponse({'success': True, 'message': '功能待实现'})
-
-
-@csrf_exempt
-def clear_violations(request):
-    """清空违规记录"""
-    return JsonResponse({'success': True, 'message': '功能待实现'})
-
-
-@csrf_exempt
 def batch_upload_violations(request):
     """批量上传违规数据"""
-    return JsonResponse({'success': True, 'message': '功能待实现'})
-
-
-@csrf_exempt
-def export_violations_data(request):
-    """导出违规数据"""
-    return JsonResponse({'success': True, 'message': '功能待实现'})
-
-
-@csrf_exempt
-def get_violation_trends(request):
-    """获取违规趋势"""
     return JsonResponse({'success': True, 'message': '功能待实现'})
 
 
@@ -2551,124 +3276,6 @@ def get_all_online_users(request):
         return JsonResponse({
             'success': False,
             'message': f'获取在线用户列表失败: {str(e)}'
-        }, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["GET"])
-def get_files_by_date(request):
-    """
-    根据日期获取文件列表(供visitor使用access_token访问)
-    """
-    try:
-        access_token = request.GET.get('access_token')
-
-        if not access_token:
-            return JsonResponse({
-                'success': False,
-                'message': '缺少access_token参数'
-            }, status=400)
-
-        # 验证token
-        redis_client = get_redis_client()
-        if not redis_client:
-            return JsonResponse({
-                'success': False,
-                'message': 'Redis服务不可用'
-            }, status=503)
-
-        token_key = f'access:token:{access_token}'
-        token_data = redis_client.get(token_key)
-
-        if not token_data:
-            return JsonResponse({
-                'success': False,
-                'message': 'access_token无效或已过期',
-                'valid': False
-            }, status=403)
-
-        token_info = json.loads(token_data)
-
-        # 检查权限类型必须是time
-        if token_info.get('access_type') != 'time':
-            return JsonResponse({
-                'success': False,
-                'message': '此token不是时间类型权限'
-            }, status=403)
-
-        # 获取授权的日期
-        target_date = token_info.get('access_value')  # 格式: YYYY-MM-DD
-        eid = token_info.get('eid')
-
-        if not target_date or not eid:
-            return JsonResponse({
-                'success': False,
-                'message': 'token信息不完整'
-            }, status=400)
-
-        # 查询该日期的文件
-        try:
-            from datetime import datetime as dt
-            date_obj = dt.strptime(target_date, '%Y-%m-%d').date()
-        except ValueError:
-            return JsonResponse({
-                'success': False,
-                'message': '日期格式错误'
-            }, status=400)
-
-        # 获取该EID下该日期的所有文件
-        warehouses = DeviceWarehouse.objects.filter(eid=eid)
-        files = WarehouseFile.objects.filter(
-            warehouse__in=warehouses,
-            upload_date=date_obj
-        ).order_by('-created_at')
-
-        if not files.exists():
-            return JsonResponse({
-                'success': True,
-                'files': [],
-                'count': 0,
-                'message': f'未找到日期 {target_date} 的文件',
-                'date': target_date
-            })
-
-        # 构建文件列表
-        file_list = []
-        for file_record in files:
-            file_list.append({
-                'id': file_record.id,
-                'file_name': file_record.file_name,
-                'file_path': file_record.file_path,
-                'upload_date': file_record.upload_date.isoformat(),
-                'file_size': file_record.file_size,
-                'warehouse_name': file_record.warehouse.name,
-                'warehouse_id': file_record.warehouse.id,
-                'created_at': file_record.created_at.isoformat()
-            })
-
-        logger.info(
-            f"Visitor通过token访问日期文件: "
-            f"visitor={token_info.get('visitor_name')}, "
-            f"date={target_date}, files={len(file_list)}"
-        )
-
-        return JsonResponse({
-            'success': True,
-            'files': file_list,
-            'count': len(file_list),
-            'date': target_date,
-            'token_info': {
-                'visitor_name': token_info.get('visitor_name'),
-                'eid': token_info.get('eid'),
-                'approved_by': token_info.get('approved_by')
-            }
-        })
-
-    except Exception as e:
-        logger.error(f"获取日期文件失败: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'message': f'获取文件失败: {str(e)}'
         }, status=500)
 
 
@@ -3307,4 +3914,45 @@ def admin_revoke_token(request):
         return JsonResponse({
             'success': False,
             'message': f'撤销令牌失败: {str(e)}'
+        }, status=500)
+
+
+# 健康检查接口
+@csrf_exempt
+@require_http_methods(["GET"])
+def smart_router_health(request):
+    """智能路由器健康检查"""
+    try:
+        router = IntelligentQueryRouter()
+
+        # 测试基本功能
+        test_query = "测试查询"
+        structure = router.structure_analyzer.analyze_query_structure(test_query)
+
+        health_data = {
+            'router_available': True,
+            'structure_analyzer_available': structure is not None,
+            'janus_pro_available': router.janus_service.is_model_available(),
+            'basic_processor_available': True,
+            'timestamp': timezone.now().isoformat()
+        }
+
+        overall_health = all([
+            health_data['router_available'],
+            health_data['structure_analyzer_available'],
+            health_data['basic_processor_available']
+        ])
+
+        return JsonResponse({
+            'success': True,
+            'overall_health': 'healthy' if overall_health else 'degraded',
+            'components': health_data
+        })
+
+    except Exception as e:
+        logger.error(f"路由器健康检查失败: {e}")
+        return JsonResponse({
+            'success': False,
+            'overall_health': 'error',
+            'error': str(e)
         }, status=500)

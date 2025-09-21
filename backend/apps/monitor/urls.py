@@ -6,7 +6,7 @@ from . import views
 app_name = 'monitor'
 
 urlpatterns = [
-    # 页面路由 (如果Django也负责部分页面渲染)
+    # 页面路由
     path('dashboard/', views.violations_dashboard, name='violations_dashboard'),
 
     # 设备仓库相关路由
@@ -37,6 +37,8 @@ urlpatterns = [
     # AI查询相关
     path('ai-query/', views.ai_query, name='ai_query'),
     path('ai-query/history/', views.ai_query_history, name='ai_query_history'),
+    path('ai-query/smart/', views.smart_ai_query, name='smart_ai_query'),
+    path('ai-query/routing-status/', views.routing_system_status, name='routing_system_status'),
 
     # 系统相关
     path('health/', views.system_health, name='system_health'),
