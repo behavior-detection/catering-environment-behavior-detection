@@ -1,0 +1,23 @@
+{
+  "camera_id": "cam_11",
+  "timestamp": "2025年08月07日星期四16:23:20",
+  "class_numbers": {
+    "person": 16,
+    "mask": 0,
+    "hat": 0,
+    "uniform": 24,
+    "mouse": 0,
+    "phone": 0,
+    "cigarette": 0
+  },
+  "violations": {
+    "person": 0,
+    "mask": 16,
+    "hat": 16,
+    "uniform": 0,
+    "mouse": 0,
+    "phone": 0,
+    "cigarette": 0
+  },
+  "total_violations": 32
+}
