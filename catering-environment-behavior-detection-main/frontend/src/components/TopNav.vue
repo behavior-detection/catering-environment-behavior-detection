@@ -23,7 +23,10 @@ export default {
 nav {
   padding: 10px;
   border-bottom: 7px solid #e6f4ff;
-  box-shadow: 0 6px 5px -5px #e6f4ff; /* 向下扩展的阴影，颜色同边框 */
+  box-shadow: 0 6px 5px -5px #e6f4ff;
+  flex-shrink: 0;
+  background-color: #fff;
+  z-index: 100;
 }
 
 a {

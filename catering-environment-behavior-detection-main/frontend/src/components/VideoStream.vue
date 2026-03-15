@@ -108,7 +108,7 @@ export default {
       canvasContext: null,
       canvasWidth: 0,
       canvasHeight: 0,
-      enableOverlay: true,
+      enableOverlay: false,
       unsubscribeStore: null // 保存取消订阅函数
     }
   },

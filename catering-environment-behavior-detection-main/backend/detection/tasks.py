@@ -18,6 +18,9 @@ from .models import VideoSource, ROIPolygon, DetectionSetting, ViolationEvent
 from .yolo.video_source import VideoSourceManager
 from django.core.cache import cache
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+
 logger = logging.getLogger(__name__)
 
 YOLO_MODEL = None
@@ -43,6 +46,7 @@ def get_yolo_model():
 
         # Device from env, default cpu
         device = os.getenv('YOLO_DEVICE', 'cpu')
+        print(f"[YOLO] Using device: {device}")
         try:
             YOLO_MODEL.to(device)
         except Exception:
@@ -83,7 +87,7 @@ os.makedirs(settings.DETECTION_JSON_DIR, exist_ok=True)
 
 
 def _encode_bgr_to_base64(img_bgr):
-    _, buffer = cv2.imencode(".jpg", img_bgr)
+    _, buffer = cv2.imencode(".jpg", img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 65])
     return base64.b64encode(buffer).decode("utf-8")
 
 
@@ -359,7 +363,8 @@ def process_frame(source_id, use_roi=False):
             frame_bgr,
             conf=settings.DETECTION_CONFIDENCE_THRESHOLD,
             iou=settings.DETECTION_IOU_THRESHOLD,
-            verbose=False
+            verbose=False,
+            device=os.getenv('YOLO_DEVICE', 'cpu')
         )[0]
 
         # unified render
@@ -457,12 +462,15 @@ def continuous_detection(self, source_id, duration=None, use_roi=False):
             if duration and (time.time() - start_time) > duration:
                 break
 
-            try:
-                source.refresh_from_db()
-                if not source.active:
+            # 每30帧检查一次数据库状态
+            if frame_count % 30 == 0:
+                try:
+                    source.refresh_from_db()
+                    if not source.active:
+                        break
+                except VideoSource.DoesNotExist:
                     break
-            except VideoSource.DoesNotExist:
-                break
+
 
             # 获取视频帧
             frame_info = video_source.get_frame(timeout=1.0)
@@ -506,26 +514,24 @@ def continuous_detection(self, source_id, duration=None, use_roi=False):
             ts = frame_info["timestamp"]
             ts_str = time.strftime("%H:%M:%S", time.localtime(ts))
 
-            # ========== 修改：保存JSON文件并追踪 ==========
-            json_dir = os.path.join(settings.DETECTION_JSON_DIR, str(source.id))
-            os.makedirs(json_dir, exist_ok=True)
+            # ========== 保存JSON文件并追踪（每10帧保存一次）==========
+            if frame_count % 10 == 0:
+                json_dir = os.path.join(settings.DETECTION_JSON_DIR, str(source.id))
+                os.makedirs(json_dir, exist_ok=True)
 
-            # 文件名格式：ts_时间戳.json
-            json_filename = f"ts_{int(ts)}.json"
-            json_filepath = os.path.join(json_dir, json_filename)
+                json_filename = f"ts_{int(ts)}.json"
+                json_filepath = os.path.join(json_dir, json_filename)
 
-            # 保存JSON文件
-            with open(json_filepath, "w", encoding="utf-8") as f:
-                json.dump(
-                    _build_json_from_result(res, camera_id=source.name, ts_str=ts_str),
-                    f,
-                    ensure_ascii=False,
-                    indent=2
-                )
+                with open(json_filepath, "w", encoding="utf-8") as f:
+                    json.dump(
+                        _build_json_from_result(res, camera_id=source.name, ts_str=ts_str),
+                        f,
+                        ensure_ascii=False,
+                        indent=2
+                    )
 
-            # 👉 新增：将文件路径添加到追踪列表
-            _add_json_file(source_id, json_filepath)
-            logger.debug(f"[JSON_TRACKING] Added file: {json_filename}")
+                _add_json_file(source_id, json_filepath)
+                logger.debug(f"[JSON_TRACKING] Added file: {json_filename}")
 
             # 通过WebSocket发送检测帧
             async_to_sync(channel_layer.group_send)(
@@ -638,32 +644,39 @@ def process_video_detection(self, source_id, use_roi=False):
             return None  # 初始化失败直接退出
 
         # ========== 主循环 ==========
+        target_fps = 12
+        frame_interval = 1.0 / target_fps
+        last_send_time = time.time()
+
         while True:
             if cache.get(f"detection_task_{source_id}") != task_id:
                 logger.warning(f"[TASK_ABORT] Task {task_id} superseded by new task, stopping.")
                 break
 
-            # 检查源是否被停用（允许用户中断处理）
-            try:
-                source.refresh_from_db()
-                if not source.active:
-                    logger.info(f"Source {source_id} deactivated, stopping video file processing.")
+            # 每30帧检查一次数据库，而非每帧都查
+            if frame_idx % 30 == 0:
+                try:
+                    source.refresh_from_db()
+                    if not source.active:
+                        logger.info(f"Source {source_id} deactivated, stopping video file processing.")
+                        break
+                except VideoSource.DoesNotExist:
+                    logger.warning(f"Source {source_id} was deleted, stopping processing.")
                     break
-            except VideoSource.DoesNotExist:
-                logger.warning(f"Source {source_id} was deleted, stopping processing.")
-                break
 
             # 读取视频帧
             ret, frame_bgr = cap.read()
             if not ret:
                 break
 
-            if frame_idx % 10 == 0:
-                print(f"[DEBUG_TRACE] Processing frame {frame_idx}, use_roi={use_roi}")
-
-            time.sleep(0.001)
-
             frame_idx += 1
+
+            # 帧率节流：控制发送速度，防止消息堆积
+            now = time.time()
+            elapsed = now - last_send_time
+            if elapsed < frame_interval:
+                time.sleep(frame_interval - elapsed)
+            last_send_time = time.time()
 
             # 检查ROI是否有更新
             if use_roi:
@@ -715,27 +728,25 @@ def process_video_detection(self, source_id, use_roi=False):
             ts_str = f"{int((frame_idx / fps) // 60):02d}:{int((frame_idx / fps) % 60):02d}" if fps else time.strftime(
                 "%H:%M:%S")
 
-            # ========== 保存JSON文件并追踪 ==========
-            json_dir = os.path.join(settings.DETECTION_JSON_DIR, str(source.id))
-            os.makedirs(json_dir, exist_ok=True)
+            # ========== 保存JSON文件并追踪（每10帧保存一次）==========
+            if frame_idx % 10 == 0:
+                json_dir = os.path.join(settings.DETECTION_JSON_DIR, str(source.id))
+                os.makedirs(json_dir, exist_ok=True)
 
-            # 文件名格式：frame_帧号.json
-            json_filename = f"frame_{frame_idx:06d}.json"
-            json_filepath = os.path.join(json_dir, json_filename)
+                json_filename = f"frame_{frame_idx:06d}.json"
+                json_filepath = os.path.join(json_dir, json_filename)
 
-            # 保存JSON文件
-            with open(json_filepath, "w", encoding="utf-8") as f:
-                json.dump(
-                    _build_json_from_result(res, camera_id=source.name, ts_str=ts_str),
-                    f,
-                    ensure_ascii=False,
-                    indent=2
-                )
+                with open(json_filepath, "w", encoding="utf-8") as f:
+                    json.dump(
+                        _build_json_from_result(res, camera_id=source.name, ts_str=ts_str),
+                        f,
+                        ensure_ascii=False,
+                        indent=2
+                    )
 
-            # 将文件路径添加到追踪列表
-            _add_json_file(source_id, json_filepath)
-            if frame_idx % 100 == 0:  # 每100帧记录一次日志
-                logger.debug(f"[JSON_TRACKING] Processed {frame_idx} frames, added {json_filename}")
+                _add_json_file(source_id, json_filepath)
+                if frame_idx % 100 == 0:
+                    logger.debug(f"[JSON_TRACKING] Processed {frame_idx} frames, added {json_filename}")
 
             # 通过WebSocket发送检测帧和进度
             async_to_sync(channel_layer.group_send)(

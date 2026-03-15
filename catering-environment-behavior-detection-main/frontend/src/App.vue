@@ -1,6 +1,6 @@
 <!-- App.vue：根组件，包含顶部导航条和路由内容展示区域 -->
 <template>
-  <div>
+  <div class="app-layout">
     <TopNav />
     <!-- 路由匹配的页面将在此插入 -->
     <RouterView />
@@ -17,3 +17,12 @@ export default {
   components: { TopNav },
 }
 </script>
+
+<style scoped>
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+</style>

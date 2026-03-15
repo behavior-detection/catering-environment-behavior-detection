@@ -312,7 +312,7 @@ def start_celery():
 
     # 实时显示输出
     process = subprocess.Popen(
-        [sys.executable, "-m", "celery", "-A", "core", "worker", "-l", "info", "--pool=solo"],
+        [sys.executable, "-m", "celery", "-A", "core", "worker", "-l", "info", "--pool=solo", "--purge"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding='utf-8',

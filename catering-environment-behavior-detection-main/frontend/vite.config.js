@@ -1,6 +1,6 @@
 // vite.config.js - 合并配置
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools' 
+// import vueDevTools from 'vite-plugin-vue-devtools' 
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'; 
 
@@ -16,7 +16,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       vue(),
-      vueDevTools()
     ],
     resolve: {
       alias: {

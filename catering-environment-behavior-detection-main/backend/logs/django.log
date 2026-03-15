@@ -117,3 +117,12 @@ ERROR 2026-03-14 17:01:16,313 views 33520 33528 Redis¡¨Ω” ß∞‹: Error 10061 conne
 WARNING 2026-03-14 17:02:17,492 log 26808 13748 Forbidden: /api/monitor/visitor/authorized-data/
 WARNING 2026-03-14 17:03:17,163 log 26808 13748 Forbidden: /api/monitor/visitor/authorized-data/
 WARNING 2026-03-14 17:04:17,169 log 26808 13748 Forbidden: /api/monitor/visitor/authorized-data/
+WARNING 2026-03-15 10:05:17,461 log 21868 6320 Not Found: /favicon.ico
+ERROR 2026-03-15 10:23:00,821 log 21868 6320 Internal Server Error: /api/monitor/warehouses/
+ERROR 2026-03-15 10:23:11,722 log 21868 6320 Internal Server Error: /api/monitor/violations/by-eid/
+ERROR 2026-03-15 10:23:15,631 log 21868 6320 Internal Server Error: /api/monitor/violations/by-eid/
+ERROR 2026-03-15 10:23:18,002 log 21868 6320 Internal Server Error: /api/monitor/warehouses/
+ERROR 2026-03-15 10:23:23,578 log 21868 6320 Internal Server Error: /api/monitor/permission/requests/
+ERROR 2026-03-15 10:23:26,825 log 21868 6320 Internal Server Error: /api/monitor/warehouses/
+ERROR 2026-03-15 10:23:28,743 log 21868 6320 Internal Server Error: /api/monitor/violations/by-eid/
+ERROR 2026-03-15 10:23:34,469 log 21868 6320 Internal Server Error: /api/monitor/violations/by-eid/

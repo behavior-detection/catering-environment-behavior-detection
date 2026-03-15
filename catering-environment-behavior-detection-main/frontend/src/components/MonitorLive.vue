@@ -1803,17 +1803,25 @@ export default {
   border: 1px solid #cce7ff;
   border-radius: 8px;
   background-color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  min-height: 600px; /* 保证面板有足够的高度 */
+}
+
+.stream-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 16 / 9;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .video-preview,
 .video-stream {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  flex: 1; 
-  display: block;
 }
 
 .empty-state {
@@ -2269,9 +2277,8 @@ export default {
   }
 
   .stream-wrapper {
-    width: 100%;
-    height: 100%;
-    min-height: 480px;
+    max-width: 100%;
   }
+
 }
 </style>

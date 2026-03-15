@@ -42,7 +42,7 @@
       </div>
     </div>
 
-    <img :src="ridebike" class="ridebike-image"/>
+    <!-- <img :src="ridebike" class="ridebike-image"/> -->
   </div>
 </template>
 
@@ -222,7 +222,8 @@ function selectChild(parentIndex, childIndex, componentName) {
   background-color: #e6f4ff;
   padding: 16px;
   box-sizing: border-box;
-  height: calc(100vh - 60px);
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .sidebar-title {

@@ -86,10 +86,11 @@ export default {
 </script>
 
 <style scoped>
-/* 保持原有样式不变 */
 .page2-layout {
   display: flex;
-  min-height: calc(100vh - 60px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .main-content {
@@ -109,10 +110,6 @@ export default {
 @media (max-width: 768px) {
   .page2-layout {
     flex-direction: column;
-  }
-
-  .main-content {
-    padding: 15px;
   }
 }
 </style>

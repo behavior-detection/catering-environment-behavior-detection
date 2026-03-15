@@ -1254,9 +1254,10 @@ export default {
 
 <style scoped>
 .page3-container {
-  min-height: 100vh;
+  flex: 1;
   background: #f5f7fa;
   padding: 20px;
+  overflow-y: auto;
 }
 
 /* 返回按钮样式 - 改为相对定位 */
