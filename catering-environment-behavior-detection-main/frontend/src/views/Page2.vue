@@ -95,6 +95,7 @@ export default {
 
 .main-content {
   flex: 1;
+  min-width: 0;
   padding: 20px;
   background-color: #f5f5f5;
   overflow-y: auto;
@@ -107,9 +108,23 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 12px;
+  }
+
+  .main-content > div {
+    padding: 14px;
+  }
+}
+
 @media (max-width: 768px) {
   .page2-layout {
     flex-direction: column;
+  }
+
+  .main-content {
+    padding: 10px;
   }
 }
 </style>

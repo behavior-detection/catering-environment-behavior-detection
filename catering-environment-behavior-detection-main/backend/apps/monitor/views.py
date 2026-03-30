@@ -1486,38 +1486,60 @@ def normalize_violation_record_chinese_date(record):
 
 
 def parse_chinese_datetime(timestamp_str):
-    """解析中文日期时间格式：2025年08月07日星期四16:23:15"""
+    """解析多种时间格式，兼容中文日期、ISO格式、HH:MM:SS、MM:SS"""
     try:
         if not timestamp_str:
             return None
 
-        # 处理中文日期格式
-        # 格式：2025年08月07日星期四16:23:15
-        # 使用正则表达式提取日期时间部分
-        pattern = r'(\d{4})年(\d{2})月(\d{2})日[^0-9]*(\d{2}):(\d{2}):(\d{2})'
-        match = re.match(pattern, timestamp_str.strip())
+        ts = timestamp_str.strip()
 
+        # 格式1: 中文日期 "2025年08月07日星期四16:23:15"
+        pattern = r'(\d{4})年(\d{2})月(\d{2})日[^0-9]*(\d{2}):(\d{2}):(\d{2})'
+        match = re.match(pattern, ts)
         if match:
             year, month, day, hour, minute, second = match.groups()
-
-            # 构建datetime对象
             dt = datetime(
-                year=int(year),
-                month=int(month),
-                day=int(day),
-                hour=int(hour),
-                minute=int(minute),
-                second=int(second),
-                tzinfo=timezone.utc  # 设置为UTC时区
+                year=int(year), month=int(month), day=int(day),
+                hour=int(hour), minute=int(minute), second=int(second),
+                tzinfo=timezone.utc
             )
-
             return dt.isoformat()
-        else:
-            logger.warning(f"中文日期格式不匹配: {timestamp_str}")
-            return None
+
+        # 格式2: ISO格式 "2025-08-07T16:23:15" 或 "2025-08-07 16:23:15"
+        iso_pattern = r'(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})'
+        match = re.match(iso_pattern, ts)
+        if match:
+            year, month, day, hour, minute, second = match.groups()
+            dt = datetime(
+                year=int(year), month=int(month), day=int(day),
+                hour=int(hour), minute=int(minute), second=int(second),
+                tzinfo=timezone.utc
+            )
+            return dt.isoformat()
+
+        # 格式3: 仅时间 "16:23:15" (HH:MM:SS) — 使用今天的日期补全
+        hms_pattern = r'^(\d{2}):(\d{2}):(\d{2})$'
+        match = re.match(hms_pattern, ts)
+        if match:
+            h, m, s = match.groups()
+            now = datetime.now(timezone.utc)
+            dt = now.replace(hour=int(h), minute=int(m), second=int(s), microsecond=0)
+            return dt.isoformat()
+
+        # 格式4: 视频相对时间 "00:42" (MM:SS) — 使用今天的日期补全
+        ms_pattern = r'^(\d{2}):(\d{2})$'
+        match = re.match(ms_pattern, ts)
+        if match:
+            m, s = match.groups()
+            now = datetime.now(timezone.utc)
+            dt = now.replace(minute=int(m), second=int(s), microsecond=0)
+            return dt.isoformat()
+
+        logger.warning(f"无法识别的时间格式: {timestamp_str}")
+        return None
 
     except Exception as e:
-        logger.error(f"中文日期解析失败: {e}, timestamp: {timestamp_str}")
+        logger.error(f"时间解析失败: {e}, timestamp: {timestamp_str}")
         return None
 
 

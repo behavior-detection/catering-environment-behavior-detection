@@ -1,23 +1,23 @@
 {
-  "camera_id": "instance1.mp4_1773474634172",
-  "timestamp": "00:01",
+  "camera_id": "instance3.mp4_1774855954976",
+  "timestamp": "2026年03月30日15:32:44",
   "class_numbers": {
-    "person": 0,
-    "mask": 0,
-    "hat": 0,
-    "uniform": 0,
+    "person": 4,
+    "mask": 2,
+    "hat": 2,
+    "uniform": 6,
     "mouse": 0,
     "phone": 0,
     "cigarette": 0
   },
   "violations": {
     "person": 0,
-    "mask": 0,
-    "hat": 0,
+    "mask": 2,
+    "hat": 2,
     "uniform": 0,
     "mouse": 0,
     "phone": 0,
     "cigarette": 0
   },
-  "total_violations": 0
+  "total_violations": 4
 }

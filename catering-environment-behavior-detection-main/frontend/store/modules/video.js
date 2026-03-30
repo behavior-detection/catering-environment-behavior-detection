@@ -462,34 +462,10 @@ export default {
           await new Promise(resolve => setTimeout(resolve, interval));
       }
 
-      // ⚠️ 保底重连逻辑
-      console.warn('[Vuex] ⚠️ 启动超时或连接断开，尝试强制重连...');
-      try {
-          // 强制断开再连，确保干净
-          await dispatch('disconnectVideoStream');
-          await new Promise(resolve => setTimeout(resolve, 500)); // 冷却
-          await dispatch('connectToVideoStream', sourceId);
-          
-          await new Promise(resolve => setTimeout(resolve, 1500)); // 等待连接
-          
-          // 保底发送时的双重检查
-          if (state.videoSocket && state.videoSocket.readyState === 1) {
-              dispatch('sendWebSocketCommand', {
-                  command: 'start_detection',
-                  source_id: sourceId,
-                  use_roi: !!use_roi 
-              });
-              dispatch('setProcessing', true);
-              commit('SET_STREAM_ACTIVE', true);
-          } else {
-              throw new Error('强制重连后 Socket 依然未就绪');
-          }
-      } catch (e) {
-          console.error('[Vuex] 最终启动失败:', e);
-          // 🔥 [关键点3] 如果失败，确保状态是 false，不要欺骗 UI
-          commit('SET_STREAM_ACTIVE', false); 
-          throw e;
-      }
+      console.warn('[Vuex] ⚠️ 启动超时，放弃本次启动');
+      commit('SET_STREAM_ACTIVE', false);
+      dispatch('setProcessing', false);
+      throw new Error('WebSocket 启动检测超时，请重试');
     },
 
 

@@ -388,3 +388,191 @@
  * Running on http://127.0.0.1:5001
  * Running on http://10.253.30.127:5001
 2026-03-15 17:22:41,735 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-17 19:09:32,874 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-17 19:09:33,760 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-17 19:09:33,760 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-17 19:48:06,154 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-17 19:48:07,025 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-17 19:48:07,025 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-17 19:48:07,117 - werkzeug - INFO - 127.0.0.1 - - [17/Mar/2026 19:48:07] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-17 19:50:03,518 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-17 19:50:04,378 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-17 19:50:04,378 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-17 19:50:04,597 - werkzeug - INFO - 127.0.0.1 - - [17/Mar/2026 19:50:04] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-17 19:52:36,200 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-17 19:52:37,057 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-17 19:52:37,057 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-17 19:52:37,302 - werkzeug - INFO - 127.0.0.1 - - [17/Mar/2026 19:52:37] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-29 20:13:20,108 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-29 20:13:20,128 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-29 20:13:20,128 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 20:13:20,983 - werkzeug - INFO - 127.0.0.1 - - [29/Mar/2026 20:13:20] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-29 20:20:18,172 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-29 20:20:18,191 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-29 20:20:18,191 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 20:20:19,128 - werkzeug - INFO - 127.0.0.1 - - [29/Mar/2026 20:20:19] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-29 20:32:24,354 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-29 20:32:24,373 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-29 20:32:24,373 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 20:32:25,263 - werkzeug - INFO - 127.0.0.1 - - [29/Mar/2026 20:32:25] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-29 21:05:07,982 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-29 21:05:08,001 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-29 21:05:08,001 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 21:05:08,896 - werkzeug - INFO - 127.0.0.1 - - [29/Mar/2026 21:05:08] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-29 21:26:34,311 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-29 21:26:34,350 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-29 21:26:34,350 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 21:26:35,012 - werkzeug - INFO - 127.0.0.1 - - [29/Mar/2026 21:26:35] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-29 21:32:21,140 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-29 21:32:21,158 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-29 21:32:21,158 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 21:32:22,109 - werkzeug - INFO - 127.0.0.1 - - [29/Mar/2026 21:32:22] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 01:15:42,159 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 01:15:42,178 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 01:15:42,178 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 01:15:43,073 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 01:15:43] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 01:21:08,383 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 01:21:08,402 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 01:21:08,402 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 01:21:09,488 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 01:21:09] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 01:42:58,621 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 01:42:58,640 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 01:42:58,640 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 01:42:59,561 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 01:42:59] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 01:48:20,546 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 01:48:20,572 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 01:48:20,572 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 01:48:21,667 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 01:48:21] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 01:52:02,134 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 01:52:02,156 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 01:52:02,156 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 01:52:03,012 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 01:52:03] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 02:11:52,387 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 02:11:53,247 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 02:11:53,247 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 02:11:53,595 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 02:11:53] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 02:13:10,336 - __main__ - INFO - 接收到原始时间范围参数: 24, 类型: <class 'int'>
+2026-03-30 02:13:10,336 - __main__ - INFO - 处理查询: 你是什么模型, 最终时间范围: 24小时
+2026-03-30 02:13:10,336 - __main__ - INFO - 接收到预加载数据: 0条记录，将直接用于分析
+2026-03-30 02:13:10,336 - __main__ - INFO - 处理查询: 你是什么模型, 用户时间范围: 24
+2026-03-30 02:13:10,337 - __main__ - INFO - 未检测到明确时间指示，使用用户选择: 24小时
+2026-03-30 02:13:10,337 - __main__ - INFO - 最终时间范围: 24小时, 是否调整: False, 调整原因: 
+2026-03-30 02:13:10,337 - __main__ - INFO - 使用Django预加载数据: 0条记录，跳过数据库查询
+2026-03-30 02:13:10,337 - __main__ - INFO - 分析完成，时间范围: 最近24小时
+2026-03-30 02:13:10,338 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 02:13:10] "POST /api/query HTTP/1.1" 200 -
+2026-03-30 02:13:12,455 - __main__ - INFO - 接收到原始时间范围参数: 24, 类型: <class 'int'>
+2026-03-30 02:13:12,455 - __main__ - INFO - 处理查询: 你是什么模型, 最终时间范围: 24小时
+2026-03-30 02:13:12,455 - __main__ - INFO - 接收到预加载数据: 0条记录，将直接用于分析
+2026-03-30 02:13:12,455 - __main__ - INFO - 处理查询: 你是什么模型, 用户时间范围: 24
+2026-03-30 02:13:12,455 - __main__ - INFO - 未检测到明确时间指示，使用用户选择: 24小时
+2026-03-30 02:13:12,455 - __main__ - INFO - 最终时间范围: 24小时, 是否调整: False, 调整原因: 
+2026-03-30 02:13:12,460 - __main__ - INFO - 使用Django预加载数据: 0条记录，跳过数据库查询
+2026-03-30 02:13:12,460 - __main__ - INFO - 分析完成，时间范围: 最近24小时
+2026-03-30 02:13:12,460 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 02:13:12] "POST /api/query HTTP/1.1" 200 -
+2026-03-30 02:21:39,165 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 02:21:40,039 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.252.90.185:5001
+2026-03-30 02:21:40,039 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 02:21:40,157 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 02:21:40] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 15:24:47,857 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 15:24:47,874 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-30 15:24:47,874 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 15:24:48,360 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 15:24:48] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 15:28:30,472 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 15:28:30,491 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-30 15:28:30,491 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 15:28:31,312 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 15:28:31] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 15:31:58,283 - __main__ - WARNING - Janus-Pro模型路径不存在: ./models/janus-pro-1b
+2026-03-30 15:31:58,299 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.253.30.127:5001
+2026-03-30 15:31:58,299 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-30 15:31:59,390 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 15:31:59] "[31m[1mGET /api/query HTTP/1.1[0m" 405 -
+2026-03-30 15:35:30,018 - __main__ - INFO - 接收到原始时间范围参数: 720, 类型: <class 'int'>
+2026-03-30 15:35:30,018 - __main__ - INFO - 处理查询: 本月违规统计, 最终时间范围: 720小时
+2026-03-30 15:35:30,018 - __main__ - INFO - 接收到预加载数据: 0条记录，将直接用于分析
+2026-03-30 15:35:30,018 - __main__ - INFO - 处理查询: 本月违规统计, 用户时间范围: 720
+2026-03-30 15:35:30,018 - __main__ - INFO - 智能时间检测: 检测到'本月'关键词 -> 720小时 (原用户选择: 720)
+2026-03-30 15:35:30,018 - __main__ - INFO - 最终时间范围: 720小时, 是否调整: True, 调整原因: 检测到'本月'关键词
+2026-03-30 15:35:30,018 - __main__ - INFO - 使用Django预加载数据: 0条记录，跳过数据库查询
+2026-03-30 15:35:30,018 - __main__ - INFO - 分析完成，时间范围: 最近30天
+2026-03-30 15:35:30,024 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 15:35:30] "POST /api/query HTTP/1.1" 200 -
+2026-03-30 15:35:32,167 - __main__ - INFO - 接收到原始时间范围参数: 720, 类型: <class 'int'>
+2026-03-30 15:35:32,168 - __main__ - INFO - 处理查询: 本月违规统计, 最终时间范围: 720小时
+2026-03-30 15:35:32,168 - __main__ - INFO - 接收到预加载数据: 0条记录，将直接用于分析
+2026-03-30 15:35:32,168 - __main__ - INFO - 处理查询: 本月违规统计, 用户时间范围: 720
+2026-03-30 15:35:32,171 - __main__ - INFO - 智能时间检测: 检测到'本月'关键词 -> 720小时 (原用户选择: 720)
+2026-03-30 15:35:32,172 - __main__ - INFO - 最终时间范围: 720小时, 是否调整: True, 调整原因: 检测到'本月'关键词
+2026-03-30 15:35:32,173 - __main__ - INFO - 使用Django预加载数据: 0条记录，跳过数据库查询
+2026-03-30 15:35:32,173 - __main__ - INFO - 分析完成，时间范围: 最近30天
+2026-03-30 15:35:32,175 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 15:35:32] "POST /api/query HTTP/1.1" 200 -
+2026-03-30 15:35:43,002 - __main__ - INFO - 接收到原始时间范围参数: 24, 类型: <class 'int'>
+2026-03-30 15:35:43,002 - __main__ - INFO - 处理查询: 所有历史数据分析, 最终时间范围: 24小时
+2026-03-30 15:35:43,002 - __main__ - INFO - 接收到预加载数据: 0条记录，将直接用于分析
+2026-03-30 15:35:43,003 - __main__ - INFO - 处理查询: 所有历史数据分析, 用户时间范围: 24
+2026-03-30 15:35:43,003 - __main__ - INFO - 智能时间检测: 检测到'所有数据'关键词 -> 0小时 (原用户选择: 24)
+2026-03-30 15:35:43,003 - __main__ - INFO - 最终时间范围: 0小时, 是否调整: True, 调整原因: 检测到'所有数据'关键词
+2026-03-30 15:35:43,003 - __main__ - INFO - 使用Django预加载数据: 0条记录，跳过数据库查询
+2026-03-30 15:35:43,003 - __main__ - INFO - 分析完成，时间范围: 所有历史数据
+2026-03-30 15:35:43,004 - werkzeug - INFO - 127.0.0.1 - - [30/Mar/2026 15:35:43] "POST /api/query HTTP/1.1" 200 -
+2026-03-30 15:35:45,139 - __main__ - INFO - 接收到原始时间范围参数: 24, 类型: <class 'int'>
+2026-03-30 15:35:45,139 - __main__ - INFO - 处理查询: 所有历史数据分析, 最终时间范围: 24小时
+2026-03-30 15:35:45,139 - __main__ - INFO - 接收到预加载数据: 0条记录，将直接用于分析
+2026-03-30 15:35:45,139 - __main__ - INFO - 处理查询: 所有历史数据分析, 用户时间范围: 24

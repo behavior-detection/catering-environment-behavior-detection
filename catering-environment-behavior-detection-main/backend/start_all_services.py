@@ -312,7 +312,7 @@ def start_celery():
 
     # 实时显示输出
     process = subprocess.Popen(
-        [sys.executable, "-m", "celery", "-A", "core", "worker", "-l", "info", "--pool=solo", "--purge"],
+        [sys.executable, "-m", "celery", "-A", "core", "worker", "-l", "info", "--pool=eventlet", "--concurrency=2", "--purge"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding='utf-8',
@@ -405,21 +405,31 @@ def start_django():
     output_thread.start()
 
     print("等待Django服务启动...")
-    time.sleep(5)
+    max_wait = 30
+    started = False
+    for i in range(max_wait):
+        time.sleep(1)
+        if process.poll() is not None:
+            print(f"\n❌ Django进程意外退出，退出码: {process.returncode}")
+            print("=" * 50 + "\n")
+            return None
+        if check_port(DJANGO_PORT):
+            started = True
+            break
+        if (i + 1) % 5 == 0:
+            print(f"  Django仍在启动中...已等待 {i + 1} 秒")
 
-    # 验证服务是否启动成功
-    if process.poll() is None and check_port(DJANGO_PORT):
+    if started:
         print(f"\n✅ Django服务启动成功 (支持WebSocket)")
         print(f"   HTTP:      http://localhost:{DJANGO_PORT}")
         print(f"   WebSocket: ws://localhost:{DJANGO_PORT}/ws/")
         print("=" * 50 + "\n")
         return process
     else:
-        print("\n❌ Django服务启动失败")
-        if process.poll() is not None:
-            print(f"   进程退出码: {process.returncode}")
+        print(f"\n⚠️ Django服务在 {max_wait} 秒内未就绪，但进程仍在运行，继续等待...")
+        print(f"   进程PID: {process.pid}")
         print("=" * 50 + "\n")
-        return None
+        return process
 
 
 def main():

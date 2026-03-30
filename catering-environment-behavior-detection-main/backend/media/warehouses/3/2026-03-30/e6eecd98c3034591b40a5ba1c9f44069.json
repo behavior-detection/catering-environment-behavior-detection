@@ -1,0 +1,23 @@
+{
+  "camera_id": "instance3.mp4_1773541755927",
+  "timestamp": "00:36",
+  "class_numbers": {
+    "person": 6,
+    "mask": 2,
+    "hat": 4,
+    "uniform": 6,
+    "mouse": 0,
+    "phone": 0,
+    "cigarette": 0
+  },
+  "violations": {
+    "person": 0,
+    "mask": 4,
+    "hat": 2,
+    "uniform": 0,
+    "mouse": 0,
+    "phone": 0,
+    "cigarette": 0
+  },
+  "total_violations": 6
+}

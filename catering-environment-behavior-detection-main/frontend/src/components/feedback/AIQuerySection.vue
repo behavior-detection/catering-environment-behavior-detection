@@ -5,7 +5,7 @@
       <div class="chat-title">
         <span>AI智能问答助手</span>
       </div>
-      <div class="chat-subtitle">用自然语言询问违规数据相关问题</div>
+      <div class="chat-subtitle">询问违规数据相关问题</div>
       <div v-if="!currentEid" class="eid-warning">
         ⚠️ 请先登录获取企业信息
       </div>

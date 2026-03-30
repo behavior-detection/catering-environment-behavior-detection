@@ -512,7 +512,7 @@ def continuous_detection(self, source_id, duration=None, use_roi=False):
             # res 保持不变或设为空
 
             ts = frame_info["timestamp"]
-            ts_str = time.strftime("%H:%M:%S", time.localtime(ts))
+            ts_str = datetime.fromtimestamp(ts).strftime("%Y年%m月%d日%H:%M:%S")
 
             # ========== 保存JSON文件并追踪（每10帧保存一次）==========
             if frame_count % 10 == 0:
@@ -592,9 +592,10 @@ def process_video_detection(self, source_id, use_roi=False):
     # 1. 互斥检查
     _stop_existing_task(source_id)
 
-    # 2. 注册新任务
+    # 2. 注册新任务（与 continuous_detection 使用同一个 Redis key）
     task_id = self.request.id
-    cache.set(f"detection_task_{source_id}", task_id, timeout=86400)
+    lock_key = f"task_lock_{source_id}"
+    redis_client.setex(lock_key, 86400, task_id)
 
     logger.info(f"[TASK_START] Started file detection task {task_id} for source {source_id}")
 
@@ -649,8 +650,9 @@ def process_video_detection(self, source_id, use_roi=False):
         last_send_time = time.time()
 
         while True:
-            if cache.get(f"detection_task_{source_id}") != task_id:
-                logger.warning(f"[TASK_ABORT] Task {task_id} superseded by new task, stopping.")
+            current_lock = redis_client.get(f"task_lock_{source_id}")
+            if current_lock and current_lock != task_id:
+                logger.warning(f"[TASK_ABORT] Task {task_id} superseded by {current_lock}, stopping.")
                 break
 
             # 每30帧检查一次数据库，而非每帧都查
@@ -725,8 +727,7 @@ def process_video_detection(self, source_id, use_roi=False):
                 dets = []
 
             # 计算时间戳字符串
-            ts_str = f"{int((frame_idx / fps) // 60):02d}:{int((frame_idx / fps) % 60):02d}" if fps else time.strftime(
-                "%H:%M:%S")
+            ts_str = datetime.now().strftime("%Y年%m月%d日%H:%M:%S")
 
             # ========== 保存JSON文件并追踪（每10帧保存一次）==========
             if frame_idx % 10 == 0:
@@ -798,9 +799,10 @@ def process_video_detection(self, source_id, use_roi=False):
         return None
     finally:
         # 3. 清理
-        current_recorded_id = cache.get(f"detection_task_{source_id}")
-        if current_recorded_id == task_id:
-            cache.delete(f"detection_task_{source_id}")
+        lock_key = f"task_lock_{source_id}"
+        if redis_client.get(lock_key) == task_id:
+            redis_client.delete(lock_key)
+            logger.info(f"[TASK_UNLOCK] Released lock for source {source_id}")
 
 
 def _draw_roi_regions(img_bgr, roi_polygons, img_w, img_h):

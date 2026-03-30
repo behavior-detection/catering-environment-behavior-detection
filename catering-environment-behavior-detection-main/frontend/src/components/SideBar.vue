@@ -361,4 +361,70 @@ function selectChild(parentIndex, childIndex, componentName) {
     width: 60%;
   }
 }
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 60px;
+    padding: 16px 8px;
+  }
+
+  .sidebar-title {
+    font-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .sidebar-title::after {
+    content: '菜单';
+    font-size: 12px;
+    display: block;
+    text-align: center;
+  }
+
+  .sidebar-text {
+    display: none;
+  }
+
+  .sidebar-arrow {
+    display: none;
+  }
+
+  .sidebar-icon {
+    margin-right: 0;
+    font-size: 18px;
+    display: block;
+    text-align: center;
+    width: 100%;
+  }
+
+  .normal-menu-item {
+    justify-content: center;
+    padding: 10px 4px;
+  }
+
+  .dropdown-header {
+    justify-content: center;
+    padding: 10px 4px;
+  }
+
+  .dropdown-item {
+    padding: 10px 4px;
+    justify-content: center;
+  }
+
+  .dropdown-item span {
+    display: none;
+  }
+
+  .dropdown-icon {
+    margin-right: 0;
+    width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}
 </style>

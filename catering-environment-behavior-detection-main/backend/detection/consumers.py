@@ -63,7 +63,12 @@ class VideoStreamConsumer(AsyncWebsocketConsumer):
         }))
 
     async def disconnect(self, close_code):
-        """Leave group on disconnect"""
+        """Leave group on disconnect and cleanup running task"""
+        if self.current_task_id:
+            logger.info(f"[WS_DISCONNECT] Cleaning up task {self.current_task_id} for source {self.source_id}")
+            app.control.revoke(self.current_task_id, terminate=True, signal='SIGTERM')
+            self.current_task_id = None
+
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name

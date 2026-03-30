@@ -1,0 +1,23 @@
+{
+  "camera_id": "instance2.mp4_1774855978573",
+  "timestamp": "2026年03月30日15:33:14",
+  "class_numbers": {
+    "person": 2,
+    "mask": 0,
+    "hat": 2,
+    "uniform": 1,
+    "mouse": 0,
+    "phone": 0,
+    "cigarette": 0
+  },
+  "violations": {
+    "person": 0,
+    "mask": 2,
+    "hat": 0,
+    "uniform": 1,
+    "mouse": 0,
+    "phone": 0,
+    "cigarette": 0
+  },
+  "total_violations": 3
+}

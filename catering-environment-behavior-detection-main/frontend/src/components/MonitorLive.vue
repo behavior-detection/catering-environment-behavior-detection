@@ -327,15 +327,23 @@
         </div>
 
         <div v-if="selectedSourceId" class="stream-wrapper">
+            <img
+                v-show="!detecting && !isStarting && snapshotUrl"
+                :src="snapshotUrl"
+                alt="视频预览"
+                class="video-preview"
+                style="object-fit: contain;"
+            />
+
             <video 
-                v-show="!detecting && !isStarting && previewUrl" 
+                v-show="!detecting && !isStarting && !snapshotUrl && previewUrl" 
                 :src="previewUrl" 
                 controls 
                 class="video-preview"
             ></video>
 
             <VideoStream 
-                v-show="detecting || isStarting || !previewUrl"
+                v-show="detecting || isStarting"
                 ref="videoStreamComp"
                 :key="streamKey"
                 :source-id="selectedSourceId" 
@@ -1273,7 +1281,7 @@ export default {
         return
       }
       this.detecting = true
-      this.activateAndStartDetection()
+      await this.activateAndStartDetection()
     },
 
     async waitForConnection(timeout = 5000) {
@@ -1293,20 +1301,31 @@ export default {
       // 1. 基础状态设置
       if (!this.selectedSourceId) return;
       this.isStarting = true;
-      this.detecting = true; // 立即设为 true，配合上面的 Template 修改确保显示
+      this.detecting = true;
       this.previewUrl = ''; 
       
       try {
+        // 0. 先彻底断开旧连接，防止残留 stop 命令干扰新任务
+        if (this.streamActive || this.connected) {
+          console.log('[Flow] 0. 断开旧连接...');
+          await this.disconnectVideoStream();
+          this.streamActive = false;
+          this.connected = false;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
         console.log('[Flow] 1. 强制刷新组件...');
-        this.streamKey++; // 强制 VideoStream 组件重新挂载，清除旧状态
-        await this.$nextTick(); // 等待 DOM 更新
+        this.streamKey++;
+        await this.$nextTick();
 
         console.log('[Flow] 2. 激活视频源...');
         await this.activateVideoSource(this.selectedSourceId);
 
         console.log('[Flow] 3. 建立 WebSocket 连接...');
-        // 不管之前连没连，直接调用 connect。Vuex 内部会处理去重或重连。
         await this.connectToVideoStream(this.selectedSourceId);
+
+        // 等待连接稳定，防止发送指令时 socket 未就绪
+        await this.waitForConnection(5000);
         
         console.log('[Flow] 4. 发送启动指令 (交给 Vuex 智能重试)...');
         await this.$store.dispatch('video/startDetection', { use_roi: this.useRoi });
@@ -1798,7 +1817,27 @@ export default {
   background-color: #ffffff;
 }
 
+.roi-editor-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+  border: 1px solid #cce7ff;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.roi-editor-wrapper .roi-editor-panel {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
 .monitor-panel {
+  width: 100%;
+  box-sizing: border-box;
   padding: 20px;
   border: 1px solid #cce7ff;
   border-radius: 8px;
@@ -1813,6 +1852,7 @@ export default {
   background-color: #000;
   border-radius: 8px;
   overflow: hidden;
+  margin: 0 auto;
 }
 
 .video-preview,
@@ -1849,19 +1889,52 @@ export default {
   font-size: 1.1em;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .find-device-container {
     margin-left: 10px;
     margin-right: 10px;
   }
 
+  .control-group {
+    min-width: 150px;
+  }
+
+  .control-btn {
+    padding: 8px 28px;
+  }
+
+  .panel-header h3 {
+    font-size: 16px;
+  }
+
+  .stream-wrapper {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .find-device-container {
+    margin-left: 8px;
+    margin-right: 8px;
+    gap: 12px;
+  }
+
+  .control-panel {
+    padding: 14px;
+  }
+
   .control-row {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
   }
 
   .control-group {
     min-width: auto;
+  }
+
+  .control-btn {
+    padding: 8px 20px;
+    width: 100%;
   }
 
   .status-indicators {
@@ -1871,11 +1944,20 @@ export default {
 
   .button-group {
     flex-direction: column;
+    width: 100%;
+  }
+
+  .button-group .control-btn {
+    width: 100%;
   }
 
   .banner-content {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .monitor-panel {
+    padding: 12px;
   }
 }
 
@@ -2237,10 +2319,25 @@ export default {
   opacity: 0.6;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
+/* JSON选择器中等屏幕适配 */
+@media (max-width: 1024px) {
   .json-selector-modal {
     width: 95%;
+  }
+
+  .roi-editor-wrapper {
+    padding: 12px;
+  }
+
+  .roi-editor-wrapper .roi-editor-panel {
+    max-width: 100%;
+  }
+}
+
+/* JSON选择器小屏幕适配 */
+@media (max-width: 768px) {
+  .json-selector-modal {
+    width: 98%;
     max-height: 90vh;
   }
 
@@ -2271,14 +2368,16 @@ export default {
 
   .roi-editor-wrapper {
     width: 100%;
-    height: 600px; /* 给一个固定高度，确保画布够大 */
+    height: 500px;
     margin-bottom: 20px;
-    border: 2px dashed #5ba0c3; /* 加个边框区分 */
+    border: 2px dashed #5ba0c3;
+    padding: 8px;
   }
 
   .stream-wrapper {
-    max-width: 100%;
+    width: 100%;
+    aspect-ratio: auto;
+    height: 300px;
   }
-
 }
 </style>
