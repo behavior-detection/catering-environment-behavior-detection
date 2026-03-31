@@ -393,6 +393,8 @@ class VisitorWebRTCClient {
     }
 }
 
+export default VisitorWebRTCClient
+
 // 使用示例
 /*
 const visitorClient = new VisitorWebRTCClient(

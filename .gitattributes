@@ -41,3 +41,4 @@
 # GitHub language statistics — mark these as non-source
 *.sql       linguist-detectable=false
 package-lock.json  linguist-generated
+*.json linguist-language=JSON

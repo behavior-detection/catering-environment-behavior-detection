@@ -42,14 +42,12 @@
       </div>
     </div>
 
-    <!-- <img :src="ridebike" class="ridebike-image"/> -->
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import ridebike from '@/assets/ridebike.svg'
 
 const store = useStore()
 const emit = defineEmits(['select'])

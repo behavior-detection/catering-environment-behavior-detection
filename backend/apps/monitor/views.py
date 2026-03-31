@@ -8,7 +8,9 @@ from django.db.models import Count, Sum, Q
 from django.core.paginator import Paginator
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
+
+SHANGHAI_TZ = dt_timezone(timedelta(hours=8))
 import json
 import re
 import logging
@@ -1778,7 +1780,7 @@ def parse_chinese_datetime(timestamp_str):
             dt = datetime(
                 year=int(year), month=int(month), day=int(day),
                 hour=int(hour), minute=int(minute), second=int(second),
-                tzinfo=timezone.utc
+                tzinfo=SHANGHAI_TZ
             )
             return dt.isoformat()
 
@@ -1790,7 +1792,7 @@ def parse_chinese_datetime(timestamp_str):
             dt = datetime(
                 year=int(year), month=int(month), day=int(day),
                 hour=int(hour), minute=int(minute), second=int(second),
-                tzinfo=timezone.utc
+                tzinfo=SHANGHAI_TZ
             )
             return dt.isoformat()
 
@@ -1799,7 +1801,7 @@ def parse_chinese_datetime(timestamp_str):
         match = re.match(hms_pattern, ts)
         if match:
             h, m, s = match.groups()
-            now = datetime.now(timezone.utc)
+            now = datetime.now(SHANGHAI_TZ)
             dt = now.replace(hour=int(h), minute=int(m), second=int(s), microsecond=0)
             return dt.isoformat()
 
@@ -1808,7 +1810,7 @@ def parse_chinese_datetime(timestamp_str):
         match = re.match(ms_pattern, ts)
         if match:
             m, s = match.groups()
-            now = datetime.now(timezone.utc)
+            now = datetime.now(SHANGHAI_TZ)
             dt = now.replace(minute=int(m), second=int(s), microsecond=0)
             return dt.isoformat()
 

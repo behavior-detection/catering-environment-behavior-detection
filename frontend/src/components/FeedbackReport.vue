@@ -20,7 +20,15 @@
       </div>
     </div>
 
+    <div v-if="aiMode === 'loading'" class="ai-loading-placeholder" style="text-align:center;padding:40px;color:#999;">
+      <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:10px;display:block;"></i>
+      正在检测AI引擎状态...
+    </div>
+
+    <ChatInterface v-else-if="aiMode === 'smart'" />
+
     <AIQuerySection
+      v-else
       :query-examples="queryExamples"
       :is-visitor-mode="isVisitorMode"
       :visitor-access-token="visitorAccessToken"
@@ -37,16 +45,21 @@
 <script>
 import { violationsAPI, aiAPI, visitorAPI } from '@/services/api'
 import AIQuerySection from './feedback/AIQuerySection.vue'
+import ChatInterface from './feedback/ChatInterface.vue'
 import MessageToast from './common/MessageToast.vue'
+import axios from 'axios'
 
 export default {
   name: 'FeedbackReport',
   components: {
     AIQuerySection,
+    ChatInterface,
     MessageToast
   },
   data() {
     return {
+      aiMode: 'loading',
+      aiModeTimer: null,
       // 用户类型检测
       userType: '',
       currentEid: '',
@@ -124,8 +137,8 @@ export default {
   mounted() {
     this.detectUserType()
     this.loadData()
+    this.detectAIMode()
 
-    // 定期刷新数据
     this.refreshInterval = setInterval(() => {
       if (!this.isLoading) {
         this.loadData()
@@ -137,9 +150,32 @@ export default {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval)
     }
-  },
+    if (this.aiModeTimer) {
+      clearTimeout(this.aiModeTimer)
+    }
+},
 
   methods: {
+    async detectAIMode() {
+      try {
+        const res = await axios.get('/api/monitor/ai-query/routing-status/')
+        if (res.data.success) {
+          const status = res.data.routing_status.janus_pro_status
+          if (status === 'LOADED') {
+            this.aiMode = 'smart'
+          } else if (status === 'LOADING') {
+            this.aiMode = 'loading'
+            this.aiModeTimer = setTimeout(() => this.detectAIMode(), 10000)
+          } else {
+            this.aiMode = 'basic'
+          }
+        } else {
+          this.aiMode = 'basic'
+        }
+      } catch (e) {
+        this.aiMode = 'basic'
+      }
+    },
     // 检测用户类型
     detectUserType() {
       try {
@@ -453,7 +489,7 @@ export default {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.feedback-report :deep(.ai-query-section) {
+.feedback-report :deep(.chat-interface) {
   background: white;
   border: 1px solid #E3F2FD;
   border-radius: 12px;

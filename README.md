@@ -8,7 +8,6 @@
 
 > A real-time catering kitchen monitoring system powered by YOLOv8 object detection, integrating video stream analysis, violation event management, AI-powered querying, and multi-role access control.
 
----
 
 ## Core Features
 
@@ -23,7 +22,6 @@
 - **WebRTC Data Sharing** — P2P file sharing between Manager and Visitor
 - **Token Access Control** — Admin-managed access tokens for controlled data sharing
 
----
 
 ## Architecture
 
@@ -131,12 +129,11 @@ sequenceDiagram
 ### YOLO Detection Classes
 
 | Class | Logic |
-|---|---|
+|||
 | `person` | Baseline for PPE checks |
 | `mask` `hat` `uniform` | Not on person → violation |
 | `mouse` `phone` `cigarette` | Presence → violation |
 
----
 
 ## Quick Start
 
@@ -174,19 +171,6 @@ npm install
 npm run dev   # http://localhost:5174
 ```
 
-### Key Environment Variables (`backend/.env`)
-
-| Variable | Required | Default |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | Yes | — |
-| `DB_PASSWORD` | Yes | — |
-| `DB_NAME` / `DB_USER` / `DB_HOST` / `DB_PORT` | | `kitchen_detection_system` / `root` / `127.0.0.1` / `3306` |
-| `REDIS_HOST` / `REDIS_PORT` | | `127.0.0.1` / `6379` |
-| `PYTHON_APP_PORT` | | `8081` |
-| `YOLO_DEVICE` | | `cpu` |
-
----
-
 ## Project Structure
 
 ```
@@ -216,7 +200,6 @@ npm run dev   # http://localhost:5174
 └── README.md
 ```
 
----
 
 ## License
 

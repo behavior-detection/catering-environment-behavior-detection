@@ -363,30 +363,30 @@ class AIQueryProcessor:
         # 添加文件缓存
         self._file_cache = {}
         self._cache_timestamp = {}
-        self._cache_duration = 3600  # 1小时缓存
+        self._cache_duration = 60
 
     def process_natural_language_query(self, query: str, time_range_hours: int = 24, eid: str = None) -> Dict[str, Any]:
-        """处理自然语言查询 - 方案A：Django预加载JSON文件数据传给Janus"""
+        """处理自然语言查询 - 优先本地数据，Janus可用时增强分析"""
         try:
-            # 智能时间范围检测
             detected_range = self._detect_time_range_from_query(query, time_range_hours)
 
             logger.info(f"开始AI查询处理: query='{query}', time_range={detected_range}, eid={eid}")
 
-            # ✅ 方案A核心：先从JSON文件加载该EID的违规数据
             violations_data = None
             if eid:
                 violations_data = self._get_cached_file_data(eid, detected_range)
                 if violations_data:
                     total = violations_data.get('summary', {}).get('total_records', 0)
-                    logger.info(f"预加载文件数据成功: {total}条记录，将传给Janus")
+                    logger.info(f"预加载文件数据成功: {total}条记录")
                 else:
-                    logger.warning(f"EID={eid} 暂无文件数据，Janus将回退到查询数据库")
+                    logger.warning(f"EID={eid} 暂无文件数据")
 
-            # 将预加载数据一并传给Janus，Janus直接用，无需再查数据库
+            if not self.ai_service.check_health():
+                logger.warning("Janus服务不可用，直接使用本地数据分析")
+                return self._process_with_local_data_only(query, detected_range, eid, 'Janus服务暂不可用，使用本地数据分析')
+
             ai_result = self.ai_service.process_query(query, detected_range, violations_data=violations_data)
 
-            # 检查AI服务是否返回了fallback标记
             if ai_result.get('fallback', False):
                 logger.warning("AI服务异常，使用本地数据作为备选方案")
                 return self._process_with_local_data_only(query, detected_range, eid,
@@ -462,22 +462,24 @@ class AIQueryProcessor:
             if not warehouses.exists():
                 return {}
 
-            files = WarehouseFile.objects.filter(warehouse__in=warehouses)
+            files = WarehouseFile.objects.filter(warehouse__in=warehouses).exclude(
+                file_path__endswith='.mp4'
+            ).exclude(
+                file_path__endswith='.avi'
+            ).exclude(
+                file_path__endswith='.mov'
+            )
 
             all_violations = []
             file_count = 0
             processed_count = 0
 
-            # 限制处理的文件数量以避免超时
-            max_files = 20  # 最多处理20个文件
-
-            for file_record in files[:max_files]:
+            for file_record in files:
                 file_count += 1
                 try:
                     if os.path.exists(file_record.file_path):
-                        # 检查文件大小，如果太大则跳过
                         file_size = os.path.getsize(file_record.file_path)
-                        if file_size > 10 * 1024 * 1024:  # 超过10MB跳过
+                        if file_size > 10 * 1024 * 1024:
                             logger.warning(f"跳过大文件: {file_record.file_path} ({file_size} bytes)")
                             continue
 
@@ -486,8 +488,7 @@ class AIQueryProcessor:
                             processed_count += 1
 
                             if isinstance(data, list):
-                                # 限制处理的记录数量
-                                for item in data[:1000]:  # 每个文件最多处理1000条记录
+                                for item in data:
                                     normalized = self._normalize_violation_record(item, eid, file_record)
                                     if normalized:
                                         all_violations.append(normalized)
@@ -668,7 +669,7 @@ class AIQueryProcessor:
             return None
 
     def _parse_timestamp(self, timestamp_str: str) -> Optional[str]:
-        """解析时间戳，支持中文和ISO格式"""
+        """解析时间戳，支持中文日期、ISO格式、HH:MM:SS、MM:SS"""
         try:
             import re
             from datetime import datetime
@@ -677,10 +678,11 @@ class AIQueryProcessor:
             if not timestamp_str:
                 return None
 
-            # 尝试解析中文日期格式：2025年08月07日星期四16:23:15
-            pattern = r'(\d{4})年(\d{2})月(\d{2})日[^0-9]*(\d{2}):(\d{2}):(\d{2})'
-            match = re.match(pattern, timestamp_str.strip())
+            ts = timestamp_str.strip()
 
+            # 格式1: 中文日期 "2025年08月07日星期四16:23:15"
+            pattern = r'(\d{4})年(\d{2})月(\d{2})日[^0-9]*(\d{2}):(\d{2}):(\d{2})'
+            match = re.match(pattern, ts)
             if match:
                 year, month, day, hour, minute, second = match.groups()
                 dt = datetime(
@@ -690,17 +692,37 @@ class AIQueryProcessor:
                 )
                 return dt.isoformat()
 
-            # 尝试解析ISO格式
-            try:
-                if timestamp_str.endswith('Z'):
-                    timestamp_str = timestamp_str.replace('Z', '+00:00')
-                dt = datetime.fromisoformat(timestamp_str)
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
+            # 格式2: ISO格式 "2025-08-07T16:23:15" 或 "2025-08-07 16:23:15"
+            iso_pattern = r'(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})'
+            match = re.match(iso_pattern, ts)
+            if match:
+                year, month, day, hour, minute, second = match.groups()
+                dt = datetime(
+                    year=int(year), month=int(month), day=int(day),
+                    hour=int(hour), minute=int(minute), second=int(second),
+                    tzinfo=timezone.utc
+                )
                 return dt.isoformat()
-            except:
-                pass
 
+            # 格式3: 仅时间 "16:23:15" (HH:MM:SS) — 使用今天的日期补全
+            hms_pattern = r'^(\d{2}):(\d{2}):(\d{2})$'
+            match = re.match(hms_pattern, ts)
+            if match:
+                h, m, s = match.groups()
+                now = datetime.now(timezone.utc)
+                dt = now.replace(hour=int(h), minute=int(m), second=int(s), microsecond=0)
+                return dt.isoformat()
+
+            # 格式4: 视频相对时间 "00:42" (MM:SS) — 使用今天的日期补全
+            ms_pattern = r'^(\d{2}):(\d{2})$'
+            match = re.match(ms_pattern, ts)
+            if match:
+                m, s = match.groups()
+                now = datetime.now(timezone.utc)
+                dt = now.replace(minute=int(m), second=int(s), microsecond=0)
+                return dt.isoformat()
+
+            self.logger.warning(f"无法识别的时间格式: {timestamp_str}")
             return None
 
         except Exception as e:

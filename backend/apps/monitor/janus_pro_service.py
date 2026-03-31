@@ -267,8 +267,6 @@ Your JSON Response:
         """
         logger.info(f"Generating full response for complex query: {user_question}")
         try:
-            # [ 核心修復 ]
-            # 初始化對話列表時，必須首先加入 system_prompt 作為AI的角色設定
             conversation = [
                 {"role": "system", "content": self.system_prompt}
             ]

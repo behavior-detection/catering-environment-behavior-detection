@@ -3,7 +3,7 @@
  * 作用：Manager可以分享本地文件给经过授权的Visitor
  */
 
-class ManagerWebRTCClient {
+export default class ManagerWebRTCClient {
     constructor(managerName, eid) {
         this.managerName = managerName;
         this.eid = eid;
@@ -322,6 +322,8 @@ class ManagerWebRTCClient {
         }
     }
 }
+
+// export default ManagerWebRTCClient
 
 // 使用示例
 /*

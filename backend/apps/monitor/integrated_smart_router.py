@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class IntelligentQueryRouter:
-    """智能查询路由器 - 基于结构分析的聪明路由"""
+    """智能查询路由器 - 基于结构分析的路由"""
 
     def __init__(self):
         self.structured_processor = StructuredQueryProcessor()

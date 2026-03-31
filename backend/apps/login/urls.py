@@ -96,7 +96,7 @@ urlpatterns = [
     path('api/reload_database', face_views.reload_database, name='reload_database'),
 
     # ===================== 无前缀备用路由 =====================
-    path('verify-user-email', api_views.verify_user_email, name='verify_user_email_no_prefix'),
-    path('check-manager-username', api_views.check_manager_username, name='check_manager_username_no_prefix'),
-    path('check-visitor-username', api_views.check_visitor_username, name='check_visitor_username_no_prefix'),
+    path('verify-user-email', auth_views.verify_user_email, name='verify_user_email_no_prefix'),
+    path('check-manager-username', auth_views.check_manager_username, name='check_manager_username_no_prefix'),
+    path('check-visitor-username', auth_views.check_visitor_username, name='check_visitor_username_no_prefix'),
 ]
