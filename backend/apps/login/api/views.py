@@ -297,70 +297,6 @@ def save_license_file(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def verify_user_email(request):
-    """验证邮箱是否与用户名匹配"""
-    try:
-        data = json.loads(request.body)
-        username = data.get('username')
-        email = data.get('email')
-
-        if not username or not email:
-            return JsonResponse({'success': False, 'message': '用户名和邮箱不能为空'}, status=400)
-
-        # 使用 exists() 而不是 first()，避免查询 id 字段
-        exists = Verification.objects.filter(name=username, email=email).exists()
-
-        if exists:
-            return JsonResponse({'success': True, 'message': '邮箱验证通过'})
-        else:
-            return JsonResponse({'success': False, 'message': '邮箱与用户名不匹配'}, status=400)
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def check_manager_username(request):
-    """检查管理员用户名是否存在"""
-    try:
-        data = json.loads(request.body)
-        username = data.get('username')
-
-        if not username:
-            return JsonResponse({'success': False, 'message': '用户名不能为空'}, status=400)
-
-        # 检查用户名是否在 Manager 表中存在
-        exists = Manager.objects.filter(name=username).exists()
-
-        return JsonResponse({'success': True, 'exists': exists})
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def check_visitor_username(request):
-    """检查访客用户名是否存在"""
-    try:
-        data = json.loads(request.body)
-        username = data.get('username')
-
-        if not username:
-            return JsonResponse({'success': False, 'message': '用户名不能为空'}, status=400)
-
-        # 检查用户名是否在 Visitor 表中存在
-        exists = Visitor.objects.filter(name=username).exists()
-
-        return JsonResponse({'success': True, 'exists': exists})
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
 def save_employee_verification_data(request):
     """保存员工验证数据"""
     try:
@@ -508,84 +444,6 @@ def ocr_business_license(request):
             'success': False,
             'message': '处理请求时出现错误，请重试'
         }, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def verify_code(request):
-    """验证邮箱验证码 - API版本"""
-    try:
-        data = json.loads(request.body)
-        email = data.get('email')
-        code = data.get('code')
-
-        from django.core.cache import cache
-        stored_code = cache.get(f'verification_code:{email}')
-
-        if not stored_code:
-            return JsonResponse({'success': False, 'message': '验证码已过期'}, status=400)
-
-        if stored_code == str(code):
-            cache.delete(f'verification_code:{email}')
-            return JsonResponse({'success': True, 'message': '验证成功'})
-        else:
-            return JsonResponse({'success': False, 'message': '验证码错误'}, status=400)
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def check_username(request):
-    """检查用户名是否存在 - API版本"""
-    try:
-        data = json.loads(request.body)
-        username = data.get('username')
-
-        if not username:
-            return JsonResponse({'success': False, 'message': '用户名不能为空'}, status=400)
-
-        exists = Visitor.objects.filter(name=username).exists()
-        return JsonResponse({'success': True, 'exists': exists})
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def visitor_register(request):
-    """访客注册 - API版本"""
-    try:
-        data = json.loads(request.body)
-        username = data.get('username')
-        email = data.get('email')
-        password = data.get('password')
-
-        if not all([username, email, password]):
-            return JsonResponse({'success': False, 'message': '所有字段都是必填的'}, status=400)
-
-        # 检查用户名是否存在
-        if Visitor.objects.filter(name=username).exists():
-            return JsonResponse({'success': False, 'message': '用户名已存在'}, status=400)
-
-        # 创建访客 - 使用明文密码
-        visitor = Visitor.objects.create(
-            name=username,
-            password=password  # 明文密码
-        )
-
-        # 创建验证记录
-        Verification.objects.create(
-            name=username,
-            email=email
-        )
-
-        return JsonResponse({'success': True, 'message': '注册成功'})
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
 @csrf_exempt
@@ -773,47 +631,6 @@ def get_redis_client():
 
 # 在需要使用Redis的地方使用这个函数
 redis_client = get_redis_client()
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def send_verification_code(request):
-    """发送邮箱验证码"""
-    try:
-        data = json.loads(request.body)
-        email = data.get('email')
-
-        if not email:
-            return JsonResponse({'success': False, 'message': '邮箱不能为空'}, status=400)
-
-        # 生成6位验证码
-        code = str(random.randint(100000, 999999))
-
-        # 如果Redis可用，使用Redis存储
-        if redis_client:
-            redis_client.setex(f'verify_code:{email}', 300, code)
-        else:
-            # 如果Redis不可用，使用Django的缓存
-            from django.core.cache import cache
-            cache.set(f'verification_code:{email}', code, 300)
-
-        # 发送邮件
-        try:
-            send_mail(
-                '验证码',
-                f'您的验证码是：{code}，5分钟内有效。',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False,
-            )
-            return JsonResponse({'success': True, 'message': '验证码已发送'})
-        except Exception as e:
-            print(f"Email send error: {str(e)}")
-            return JsonResponse({'success': False, 'message': '邮件发送失败，请检查邮件配置'}, status=500)
-
-    except Exception as e:
-        print(f"send_verification_code error: {str(e)}")
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
 @csrf_exempt
