@@ -1,0 +1,66 @@
+# ========================
+# 通用
+# ========================
+.DS_Store
+Thumbs.db
+*.log
+*.logs
+
+# ========================
+# IDE / 编辑器
+# ========================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ========================
+# 环境变量 / 敏感文件
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# Python / Django (backend)
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+db.sqlite3
+backend/staticfiles/
+backend/media/
+backend/logs/*.log
+backend/logs/*.logs
+backend/.cache/
+backend/employee_archives/
+
+# Redis 二进制文件不应入库
+backend/Redis-x64-5.0.14.1/
+# Java OCR JAR 包不应入库
+backend/lib/
+
+# Janus 编译缓存
+backend/Janus/janus/__pycache__/
+backend/Janus/janus/models/__pycache__/
+
+# ========================
+# Node.js / Vue (frontend)
+# ========================
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+frontend/.vite/
+
+# ========================
+# 其他
+# ========================
+*.tsbuildinfo
