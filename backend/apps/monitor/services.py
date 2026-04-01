@@ -398,31 +398,45 @@ class AIQueryProcessor:
             self.logger.error(f"处理自然语言查询失败: {str(e)}")
             return self._process_with_local_data_only(query, time_range_hours, eid, f"查询处理异常: {str(e)}")
 
-    def _process_with_local_data_only(self, query: str, time_range_hours: int, eid: str, error_msg: str) -> Dict[
-        str, Any]:
+    def _process_with_local_data_only(self, query: str, time_range_hours: int, eid: str, error_msg: str) -> Dict[str, Any]:
         """仅使用本地数据处理查询的备选方案"""
         try:
             logger.info(f"使用本地数据备选方案处理查询")
 
-            # 获取本地文件数据
             local_analysis = self._get_cached_file_data(eid, time_range_hours)
-
-            # 简单的关键词分析
             ai_summary = self._analyze_query_keywords(query, local_analysis)
+
+            summary = local_analysis.get('summary', {})
 
             return {
                 'success': True,
                 'query': query,
                 'time_range_hours': time_range_hours,
                 'eid': eid,
-                'analysis': local_analysis,
-                'ai_summary': ai_summary,
+                'analysis': {
+                    'direct_answer': ai_summary,
+                    'detailed_explanation': f"数据来源：本地文件分析（{error_msg}）\n\n"
+                        f"共检测到 {summary.get('total_records', 0)} 条记录，"
+                        f"{summary.get('total_violations', 0)} 次违规行为，"
+                        f"涉及 {summary.get('active_cameras', 0)} 个监控点。",
+                    'suggestions': [
+                        '建议启动Janus AI服务以获取更详细的分析',
+                        '可尝试更具体的问题以获得更精确的回答'
+                    ]
+                },
+                'data_summary': {
+                    'total_violations': summary.get('total_violations', 0),
+                    'total_records': summary.get('total_records', 0),
+                    'active_cameras': summary.get('active_cameras', 0),
+                    'time_description': summary.get('time_description', f'最近{time_range_hours}小时')
+                },
                 'data_source': 'local_files_fallback',
                 'fallback_reason': error_msg,
                 'processing_mode': 'local_only',
                 'query_info': {
                     'detected_keywords': self._extract_keywords(query),
-                    'time_range_adjusted': False
+                    'time_range_adjusted': False,
+                    'smart_detected_hours': time_range_hours
                 }
             }
 

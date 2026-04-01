@@ -92,10 +92,12 @@ export default {
       this.errorMessage = ''
 
       try {
+        const token = localStorage.getItem('authToken')
         const response = await fetch('/api/set-security-questions', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify({
             username: this.userInfo.username,

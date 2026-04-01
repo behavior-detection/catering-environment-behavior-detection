@@ -36,6 +36,7 @@
 
 <script>
 import { authService } from '@/services/auth';
+import { ElMessage } from 'element-plus';
 
 export default {
   name: 'ResetPassword',
@@ -110,7 +111,7 @@ export default {
         }
 
         if (result.success || result.status === 'success') {
-          alert('密码修改成功！请使用新密码登录');
+          ElMessage.success('密码修改成功！请使用新密码登录');
           this.$emit('reset-success', {
             username: this.username,
             userType: this.userType

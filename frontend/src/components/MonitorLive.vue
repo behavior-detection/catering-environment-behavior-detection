@@ -195,6 +195,7 @@
             </div>
           </div>
         </div>
+
       </template>
 
       <!-- Visitor||Admin 模式:只显示视频选择 -->
@@ -236,14 +237,15 @@
             </select>
           </div>
 
-          <div class="control-group" v-if="selectedSourceId">
+        </div>
+
+        <div class="control-group" v-if="selectedSourceId">
             <label class="control-label">当前视频源</label>
             <div class="video-source-info visitor-source">
               <span class="source-name">{{ currentVideoSource?.name || '未命名' }}</span>
               <span class="source-type">授权访问</span>
             </div>
           </div>
-        </div>
 
         <!-- 提示信息 - 复刻 AI 样式 -->
         <div v-if="!visitorTokenInfo" class="ai-error">
@@ -412,6 +414,7 @@ import { warehouseAPI, permissionAPI } from '@/services/api'
 import VideoStream from './VideoStream.vue'
 import ROIEditor from '@/components/ROIEditor.vue'
 import MessageToast from '@/components/MessageToast.vue'
+import { ElMessageBox } from 'element-plus'
 
 export default {
   name: 'MonitorLive',
@@ -656,9 +659,9 @@ export default {
     },
 
     async deleteAllJsonFiles() {
-      if (!confirm('确定要删除所有JSON文件吗?此操作不可恢复!')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确定要删除所有JSON文件吗?此操作不可恢复!', '提示', { type: 'warning' })
+      } catch { return }
 
       try {
         const response = await api.post(`/api/detection/json-files/${this.selectedSourceId}/delete-all/`)
@@ -980,21 +983,22 @@ export default {
       }
     },
 
-    exitVisitorMode() {
-      if (confirm('确定要退出访问模式吗?')) {
-        sessionStorage.removeItem('visitor_access_token')
-        sessionStorage.removeItem('visitor_token_info')
-        this.isVisitorMode = false
-        this.visitorTokenInfo = null
-        this.visitorInfo = null
-        this.visitorAuthorizedFiles = []
-        this.selectedFileId = ''
-        this.selectedSourceId = ''
-        this.showToast('info', '已退出访问模式')
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      }
+    async exitVisitorMode() {
+      try {
+        await ElMessageBox.confirm('确定要退出访问模式吗?', '提示', { type: 'warning' })
+      } catch { return }
+      sessionStorage.removeItem('visitor_access_token')
+      sessionStorage.removeItem('visitor_token_info')
+      this.isVisitorMode = false
+      this.visitorTokenInfo = null
+      this.visitorInfo = null
+      this.visitorAuthorizedFiles = []
+      this.selectedFileId = ''
+      this.selectedSourceId = ''
+      this.showToast('info', '已退出访问模式')
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     },
 
     showToast(type, text) {
@@ -1635,8 +1639,8 @@ export default {
 .control-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 15px;
+  gap: 16px;
+  margin-bottom: 10px;
   align-items: flex-end;
 }
 
@@ -1647,7 +1651,7 @@ export default {
 .control-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   min-width: 200px;
   flex: 1;
 }
@@ -1691,6 +1695,8 @@ export default {
   background-color: #e7f3ff;
   border-radius: 4px;
   border: 1px solid #90caf9;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .video-source-info.visitor-source {
@@ -1701,6 +1707,10 @@ export default {
 .source-name {
   font-weight: 500;
   color: #1976d2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .visitor-source .source-name {
@@ -1990,7 +2000,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
   animation: fadeIn 0.2s ease;
 }
 

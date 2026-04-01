@@ -47,6 +47,7 @@
 
 <script>
 import { authService } from '@/services/auth';
+import { ElMessage } from 'element-plus';
 
 export default {
   name: 'SecurityVerification',
@@ -159,7 +160,7 @@ export default {
         const result = await response.json();
 
         if (result.success) {
-          alert('安全问题验证成功！');
+          ElMessage.success('安全问题验证成功！');
 
           // 跳转到密码重置页面
           this.$emit('go-to-forgot-password', {

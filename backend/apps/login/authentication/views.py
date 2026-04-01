@@ -4,12 +4,21 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
 import json
 import redis
 import random
 import re
 from .models import Visitor, Manager, Admin, Verification, SecurityProblem
+from .jwt_utils import create_access_token
 from django.http import HttpResponse
+
+
+def _check_password(raw_password, stored_password):
+    """兼容明文和哈希密码的验证"""
+    if stored_password.startswith('pbkdf2_'):
+        return check_password(raw_password, stored_password)
+    return raw_password == stored_password
 
 def index(request):
     return HttpResponse("厨房检测系统 API 服务")
@@ -34,10 +43,24 @@ def visitor_login(request):
         if not username or not password:
             return JsonResponse({'success': False, 'message': '用户名和密码不能为空'}, status=400)
 
-        visitor = Visitor.objects.filter(name=username, password=password).first()
+        visitor = Visitor.objects.filter(name=username).first()
 
-        if visitor:
-            return JsonResponse({'success': True, 'message': '登录成功'})
+        if visitor and _check_password(password, visitor.password):
+            token = create_access_token({
+                'username': visitor.name,
+                'user_type': 'visitor'
+            })
+            if not visitor.password.startswith('pbkdf2_'):
+                visitor.password = make_password(password)
+                visitor.save(update_fields=['password'])
+            return JsonResponse({
+                'success': True,
+                'message': '登录成功',
+                'data': {
+                    'name': visitor.name,
+                    'token': token
+                }
+            })
         else:
             return JsonResponse({'success': False, 'message': '用户名或密码错误'}, status=401)
     except Exception as e:
@@ -53,17 +76,26 @@ def manager_login(request):
         username = data.get('username')
         password = data.get('password')
 
-        manager = Manager.objects.filter(name=username, password=password).first()
+        manager = Manager.objects.filter(name=username).first()
 
-        if manager:
-            # 登录成功，返回用户信息（包括EID和Rep）
+        if manager and _check_password(password, manager.password):
+            token = create_access_token({
+                'username': manager.name,
+                'eid': manager.eid,
+                'rep': manager.rep,
+                'user_type': 'manager'
+            })
+            if not manager.password.startswith('pbkdf2_'):
+                manager.password = make_password(password)
+                manager.save(update_fields=['password'])
             return JsonResponse({
                 'success': True,
                 'message': '登录成功',
                 'data': {
                     'name': manager.name,
                     'eid': manager.eid,
-                    'rep': manager.rep
+                    'rep': manager.rep,
+                    'token': token
                 }
             })
         else:
@@ -81,10 +113,24 @@ def admin_login(request):
         username = data.get('username')
         password = data.get('password')
 
-        admin = Admin.objects.filter(name=username, password=password).first()
+        admin = Admin.objects.filter(name=username).first()
 
-        if admin:
-            return JsonResponse({'success': True, 'message': '登录成功'})
+        if admin and _check_password(password, admin.password):
+            token = create_access_token({
+                'username': admin.name,
+                'user_type': 'admin'
+            })
+            if not admin.password.startswith('pbkdf2_'):
+                admin.password = make_password(password)
+                admin.save(update_fields=['password'])
+            return JsonResponse({
+                'success': True,
+                'message': '登录成功',
+                'data': {
+                    'name': admin.name,
+                    'token': token
+                }
+            })
         else:
             return JsonResponse({'success': False, 'message': '用户名或密码错误'}, status=401)
     except Exception as e:
@@ -127,12 +173,10 @@ def visitor_register(request):
         if Verification.objects.filter(email=email).exists():
             return JsonResponse({'success': False, 'message': '邮箱已被使用'}, status=400)
 
-        # 使用事务保证数据一致性
         with transaction.atomic():
-            # 创建访客
             visitor = Visitor.objects.create(
                 name=username,
-                password=password
+                password=make_password(password)
             )
 
             # 创建验证记录
@@ -357,13 +401,13 @@ def reset_password(request):
         if not re.match(password_regex, new_password):
             return JsonResponse({'success': False, 'message': '密码格式不符合要求'}, status=400)
 
-        # 根据用户类型更新密码
+        hashed = make_password(new_password)
         if user_type == 'visitor':
-            updated = Visitor.objects.filter(name=username).update(password=new_password)
+            updated = Visitor.objects.filter(name=username).update(password=hashed)
         elif user_type == 'manager':
-            updated = Manager.objects.filter(name=username).update(password=new_password)
+            updated = Manager.objects.filter(name=username).update(password=hashed)
         elif user_type == 'admin':
-            updated = Admin.objects.filter(name=username).update(password=new_password)
+            updated = Admin.objects.filter(name=username).update(password=hashed)
         else:
             return JsonResponse({'success': False, 'message': '无效的用户类型'}, status=400)
 

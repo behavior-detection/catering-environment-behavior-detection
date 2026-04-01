@@ -36,3 +36,6 @@ PyYAML==6.0.2
 
 # 人脸识别（按需启用）
 # face_recognition
+
+# JWT 认证
+PyJWT==2.8.0

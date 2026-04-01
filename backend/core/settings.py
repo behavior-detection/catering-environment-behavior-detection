@@ -18,6 +18,11 @@ JANUS_SERVICE_URL = os.environ.get('JANUS_SERVICE_URL', 'http://localhost:5001')
 JANUS_TIMEOUT = 300  # 5分钟超时
 AI_CACHE_DURATION = 3600  # 1小时缓存
 
+# JWT 认证配置
+JWT_SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'fallback-jwt-secret-key')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
 # 性能优化配置
 MAX_FILES_PER_QUERY = 20  # 每次查询最多处理的文件数
 MAX_RECORDS_PER_FILE = 1000  # 每个文件最多处理的记录数

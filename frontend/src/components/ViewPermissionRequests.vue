@@ -148,6 +148,7 @@
 
 <script>
 import axios from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 export default {
   name: 'ViewPermissionRequests',
@@ -253,10 +254,9 @@ export default {
     },
 
     async handleApprove(request) {
-      // 确认对话框
-      if (!confirm(`确定要批准 ${request.visitor_name} 的权限申请吗？`)) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm(`确定要批准 ${request.visitor_name} 的权限申请吗？`, '提示', { type: 'warning' })
+      } catch { return }
 
       this.processing = true
       try {
@@ -271,7 +271,7 @@ export default {
           if (response.data.access_token) {
             console.log('访问令牌:', response.data.access_token)
             // 可以显示令牌给用户
-            alert(`批准成功！\n访问令牌: ${response.data.access_token}`)
+            ElMessageBox.alert(`批准成功！\n访问令牌: ${response.data.access_token}`, '令牌信息', { type: 'success' })
           }
           await this.loadRequests()
         } else {
@@ -286,10 +286,9 @@ export default {
     },
 
     async handleReject(request) {
-      // 确认对话框
-      if (!confirm(`确定要拒绝 ${request.visitor_name} 的权限申请吗？`)) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm(`确定要拒绝 ${request.visitor_name} 的权限申请吗？`, '提示', { type: 'warning' })
+      } catch { return }
 
       this.processing = true
       try {

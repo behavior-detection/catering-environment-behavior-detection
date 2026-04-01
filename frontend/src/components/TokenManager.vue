@@ -175,7 +175,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import api from '../services/api'
+import { ElMessageBox } from 'element-plus'
 
 const API_BASE_URL = import.meta.env.VITE_APP_API_BASE_URL || '/api/monitor'
 
@@ -247,7 +248,7 @@ export default {
     async loadTokens() {
       this.loading = true
       try {
-        const response = await axios.get(`${API_BASE_URL}/admin/list-tokens/`)
+        const response = await api.get(`${API_BASE_URL}/admin/list-tokens/`)
 
         if (response.data.success) {
           this.tokens = response.data.tokens || []
@@ -262,12 +263,12 @@ export default {
     },
 
     async deleteToken(tokenId) {
-      if (!confirm('确定要删除这个令牌吗?删除后将无法恢复!')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确定要删除这个令牌吗?删除后将无法恢复!', '提示', { type: 'warning' })
+      } catch { return }
 
       try {
-        const response = await axios.post(`${API_BASE_URL}/admin/delete-token/`, {
+        const response = await api.post(`${API_BASE_URL}/admin/delete-token/`, {
           access_token: tokenId
         })
 

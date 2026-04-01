@@ -169,6 +169,8 @@
 </template>
 
 <script>
+import { ElMessage } from 'element-plus'
+
 export default {
   name: 'RegisterVisitor',
   data() {
@@ -527,7 +529,7 @@ export default {
         const data = await response.json();
 
         if (data.success) {
-          alert('注册成功！将跳转到身份选择页面...');
+          ElMessage.success('注册成功！将跳转到身份选择页面...');
           this.$emit('register-success');
         } else {
           if (data.message.includes('用户名')) {

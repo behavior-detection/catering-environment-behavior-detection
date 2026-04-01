@@ -183,6 +183,7 @@
 
 <script>
 import axios from 'axios'
+import { ElMessageBox } from 'element-plus'
 import MessageToast from '@/components/common/MessageToast.vue'
 import { marked } from 'marked';
 
@@ -553,10 +554,12 @@ export default {
 
       try {
         // 6. 使用 fetch API 傳送請求
+        const token = localStorage.getItem('authToken')
         const response = await fetch('/api/monitor/ai-query/smart/', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify(payload)
         });
@@ -743,12 +746,12 @@ export default {
     },
 
     // 清空对话
-    clearConversation() {
+    async clearConversation() {
       if (this.messages.length === 0) return
 
-      if (!confirm('确认清空当前对话记录吗？')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确认清空当前对话记录吗？', '提示', { type: 'warning' })
+      } catch { return }
 
       this.messages = []
       this.conversationId = this.generateConversationId()

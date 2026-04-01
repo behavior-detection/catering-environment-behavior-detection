@@ -14,22 +14,20 @@ const routes = [
     path: '/Page2',
     name: 'MyDevicePage2',
     component: Page2,
-    meta: { hasSidebar: true, title: '设备管理' }
+    meta: { hasSidebar: true, title: '设备管理', requireAuth: true }
   },
   {
     path: '/Page3',
     name: 'AccountManagement',
     component: Page3,
-    meta: { hasSidebar: true, title: '账号管理' }
+    meta: { hasSidebar: true, title: '账号管理', requireAuth: true }
   },
   {
     path: '/Page2_2',
     name: 'DeviceDetail',
     component: () => import('../views/Page2_2.vue'),
-    meta: { hasSidebar: true, title: '设备详情' }
+    meta: { hasSidebar: true, title: '设备详情', requireAuth: true }
   }
-  // 注意：已移除 HistoricalData 独立路由
-  // HistoricalData 现在是 Page2 的子组件，通过 Page2 的侧边栏访问
 ]
 
 const router = createRouter({
@@ -37,12 +35,18 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫 - 设置页面标题
 router.beforeEach((to, from, next) => {
-  // 动态设置页面标题
-  let title = to.meta.title || '餐饮环境监测系统'
+  document.title = to.meta.title || '餐饮环境监测系统'
 
-  document.title = title
+  if (to.meta.requireAuth) {
+    const token = localStorage.getItem('authToken')
+    const userInfo = sessionStorage.getItem('userInfo') || sessionStorage.getItem('adminInfo')
+    if (!token && !userInfo) {
+      next({ path: '/' })
+      return
+    }
+  }
+
   next()
 })
 

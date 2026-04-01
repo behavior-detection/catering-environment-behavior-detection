@@ -87,7 +87,7 @@ os.makedirs(settings.DETECTION_JSON_DIR, exist_ok=True)
 
 
 def _encode_bgr_to_base64(img_bgr):
-    _, buffer = cv2.imencode(".jpg", img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 65])
+    _, buffer = cv2.imencode(".jpg", img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 85])
     return base64.b64encode(buffer).decode("utf-8")
 
 

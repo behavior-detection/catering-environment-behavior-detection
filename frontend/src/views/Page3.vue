@@ -357,6 +357,7 @@
 <script>
 // 导入全局导航锁定管理器
 import { navLockManager } from '@/services/NavLockManager'
+import { ElMessage, ElMessageBox } from 'element-plus'
 // 导入退出按钮组件
 import LogoutButton from '@/components/LogoutButton.vue'
 // 导入账号设置相关组件
@@ -455,6 +456,15 @@ export default {
     }
   },
   methods: {
+    _getAuthHeaders(extra = {}) {
+      const token = localStorage.getItem('authToken')
+      return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...extra
+      }
+    },
+
     getUserInfo() {
       // 获取用户信息
       const userInfoStr = sessionStorage.getItem('userInfo')
@@ -469,8 +479,10 @@ export default {
         }
       } else {
         // 未登录，跳转到首页
-        alert('请先登录！')
-        this.$router.push('/')
+        ElMessage.warning('请先登录！')
+        setTimeout(() => {
+          this.$router.push('/')
+        }, 1500)
       }
     },
 
@@ -515,9 +527,7 @@ export default {
       try {
         const response = await fetch(`/api/get-admin-notifications?admin_name=${encodeURIComponent(this.userInfo.username)}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: this._getAuthHeaders()
         })
 
         const data = await response.json()
@@ -588,9 +598,7 @@ export default {
 
         const response = await fetch('/api/approve-manager-registration', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._getAuthHeaders(),
           body: JSON.stringify({
             registrationId: actualRegistrationId,
             decision,
@@ -607,7 +615,7 @@ export default {
 
         if (data.success) {
           const actionText = decision === 'approve' ? '通过' : '拒绝'
-          alert(`企业注册申请已${actionText}`)
+          ElMessage.success(`企业注册申请已${actionText}`)
 
           // 刷新通知列表
           await this.refreshAdminNotifications()
@@ -620,25 +628,23 @@ export default {
 
       } catch (error) {
         console.error('审核操作失败:', error)
-        alert('审核操作失败: ' + error.message)
+        ElMessage.error('审核操作失败: ' + error.message)
       } finally {
         this.adminProcessing[registrationId] = false
       }
     },
 
     async clearAllAdminNotifications() {
-      if (!confirm('确定要清理所有通知吗？此操作不可恢复。')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确定要清理所有通知吗？此操作不可恢复。', '提示', { type: 'warning' })
+      } catch { return }
 
       this.loading = true
 
       try {
         const response = await fetch('/api/clear-admin-notifications', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._getAuthHeaders(),
           body: JSON.stringify({
             admin_name: this.userInfo.username
           })
@@ -651,14 +657,14 @@ export default {
         }
 
         if (data.success) {
-          alert('所有通知已清理')
+          ElMessage.success('所有通知已清理')
           this.adminNotifications = []
         } else {
           throw new Error(data.message || '清理失败')
         }
 
       } catch (error) {
-        console.error('清理通知失败:', error)
+        ElMessage.error('清理失败: ' + error.message)
         alert('清理失败: ' + error.message)
       } finally {
         this.loading = false
@@ -666,18 +672,16 @@ export default {
     },
 
     async deleteAdminNotification(notificationId) {
-      if (!confirm('确定要删除这条通知吗？')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确定要删除这条通知吗？', '提示', { type: 'warning' })
+      } catch { return }
 
       this.loading = true
 
       try {
         const response = await fetch('/api/clear-specific-notification', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._getAuthHeaders(),
           body: JSON.stringify({
             admin_name: this.userInfo.username,
             notification_id: notificationId
@@ -691,7 +695,7 @@ export default {
         }
 
         if (data.success) {
-          alert('通知已删除')
+          ElMessage.success('通知已删除')
           await this.refreshAdminNotifications()
         } else {
           throw new Error(data.message || '删除失败')
@@ -699,7 +703,7 @@ export default {
 
       } catch (error) {
         console.error('删除通知失败:', error)
-        alert('删除失败: ' + error.message)
+        ElMessage.error('删除失败: ' + error.message)
       } finally {
         this.loading = false
       }
@@ -715,9 +719,7 @@ export default {
       try {
         const response = await fetch(`/api/get-manager-notifications?manager_name=${encodeURIComponent(this.userInfo.username)}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: this._getAuthHeaders()
         })
 
         const data = await response.json()
@@ -788,9 +790,7 @@ export default {
 
         const response = await fetch('/api/approve-employee-registration', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._getAuthHeaders(),
           body: JSON.stringify({
             registrationId: actualRegistrationId,
             decision,
@@ -807,7 +807,7 @@ export default {
 
         if (data.success) {
           const actionText = decision === 'approve' ? '通过' : '拒绝'
-          alert(`员工注册申请已${actionText}`)
+          ElMessage.success(`员工注册申请已${actionText}`)
 
           // 刷新通知列表
           await this.refreshManagerNotifications()
@@ -820,25 +820,23 @@ export default {
 
       } catch (error) {
         console.error('审核操作失败:', error)
-        alert('审核操作失败: ' + error.message)
+        ElMessage.error('审核操作失败: ' + error.message)
       } finally {
         this.managerProcessing[registrationId] = false
       }
     },
 
     async clearAllManagerNotifications() {
-      if (!confirm('确定要清理所有员工注册通知吗？此操作不可恢复。')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确定要清理所有员工注册通知吗？此操作不可恢复。', '提示', { type: 'warning' })
+      } catch { return }
 
       this.loading = true
 
       try {
         const response = await fetch('/api/clear-manager-notifications', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._getAuthHeaders(),
           body: JSON.stringify({
             manager_name: this.userInfo.username
           })
@@ -851,7 +849,7 @@ export default {
         }
 
         if (data.success) {
-          alert('所有员工注册通知已清理')
+          ElMessage.success('所有员工注册通知已清理')
           this.managerNotifications = []
         } else {
           throw new Error(data.message || '清理失败')
@@ -859,25 +857,23 @@ export default {
 
       } catch (error) {
         console.error('清理通知失败:', error)
-        alert('清理失败: ' + error.message)
+        ElMessage.error('清理失败: ' + error.message)
       } finally {
         this.loading = false
       }
     },
 
     async deleteManagerNotification(notificationId) {
-      if (!confirm('确定要删除这条员工注册通知吗？')) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm('确定要删除这条员工注册通知吗？', '提示', { type: 'warning' })
+      } catch { return }
 
       this.loading = true
 
       try {
         const response = await fetch('/api/clear-specific-manager-notification', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._getAuthHeaders(),
           body: JSON.stringify({
             manager_name: this.userInfo.username,
             notification_id: notificationId
@@ -891,7 +887,7 @@ export default {
         }
 
         if (data.success) {
-          alert('员工注册通知已删除')
+          ElMessage.success('员工注册通知已删除')
           await this.refreshManagerNotifications()
         } else {
           throw new Error(data.message || '删除失败')
@@ -899,7 +895,7 @@ export default {
 
       } catch (error) {
         console.error('删除通知失败:', error)
-        alert('删除失败: ' + error.message)
+        ElMessage.error('删除失败: ' + error.message)
       } finally {
         this.loading = false
       }
@@ -978,7 +974,7 @@ export default {
 
     async downloadFile(file) {
       if (!file || !file.filename || !file.path) {
-        alert('文件信息不完整')
+        ElMessage.warning('文件信息不完整')
         return
       }
 
@@ -1001,7 +997,8 @@ export default {
         })
 
         const response = await fetch(`/download-registration-file?${params}`, {
-          method: 'GET'
+          method: 'GET',
+          headers: this._getAuthHeaders()
         })
 
         console.log('下载响应状态:', response.status)
@@ -1032,7 +1029,7 @@ export default {
 
       } catch (error) {
         console.error('下载文件失败:', error)
-        alert('下载失败: ' + error.message)
+        ElMessage.error('下载失败: ' + error.message)
       } finally {
         this.downloading[file.filename] = false
       }
@@ -1142,7 +1139,7 @@ export default {
 
       } catch (error) {
         console.error('显示预览模态框失败:', error)
-        alert('图片预览失败: ' + error.message)
+        ElMessage.error('图片预览失败: ' + error.message)
       }
     },
 
@@ -1160,7 +1157,9 @@ export default {
         console.log('开始获取图片数据...')
         console.log('请求URL:', `/preview-registration-file?${params}`)
 
-        const response = await fetch(`/preview-registration-file?${params}`)
+        const response = await fetch(`/preview-registration-file?${params}`, {
+          headers: this._getAuthHeaders()
+        })
 
         console.log('响应状态:', response.status)
         console.log('响应头Content-Type:', response.headers.get('Content-Type'))
@@ -1211,12 +1210,12 @@ export default {
     // 主要的预览文件入口函数（完全替换原来的方法）
     async previewFile(file) {
       if (!file || !file.filename || !file.path) {
-        alert('文件信息不完整')
+        ElMessage.warning('文件信息不完整')
         return
       }
 
       if (!this.isImageFile(file.filename)) {
-        alert('只支持预览图片文件')
+        ElMessage.warning('只支持预览图片文件')
         return
       }
 

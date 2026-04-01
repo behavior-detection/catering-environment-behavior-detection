@@ -319,6 +319,7 @@
 
 <script>
 import { warehouseAPI } from '@/services/api'
+import { ElMessageBox } from 'element-plus'
 import axios from 'axios'
 
 export default {
@@ -666,9 +667,9 @@ export default {
     },
 
     async deleteFile(file) {
-      if (!confirm(`确定要删除文件"${file.file_name}"吗？此操作不可恢复。`)) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm(`确定要删除文件"${file.file_name}"吗？此操作不可恢复。`, '提示', { type: 'warning' })
+      } catch { return }
 
       try {
         const response = await warehouseAPI.deleteFile(file.id, { eid: this.managerInfo.eid })
@@ -686,9 +687,9 @@ export default {
     },
 
     async deleteWarehouse(warehouse) {
-      if (!confirm(`确定要删除仓库"${warehouse.name}"吗？这将删除仓库及其所有文件，此操作不可恢复。`)) {
-        return
-      }
+      try {
+        await ElMessageBox.confirm(`确定要删除仓库"${warehouse.name}"吗？这将删除仓库及其所有文件，此操作不可恢复。`, '提示', { type: 'warning' })
+      } catch { return }
 
       try {
         // 直接用 axios 调用，EID 通过 query param 传递（后端路由不含EID路径段）

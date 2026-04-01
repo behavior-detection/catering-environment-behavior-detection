@@ -90,6 +90,7 @@
 <script>
 // 导入全局导航锁定管理器
 import { navLockManager } from '@/services/NavLockManager'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'Page2_2',
@@ -138,8 +139,10 @@ export default {
       const adminInfo = sessionStorage.getItem('adminInfo')
 
       if (!userInfo && !adminInfo) {
-        alert('请先登录！')
-        this.$router.push('/')
+        ElMessage.warning('请先登录！')
+        setTimeout(() => {
+          this.$router.push('/')
+        }, 1500)
       }
     },
 
@@ -149,7 +152,7 @@ export default {
     },
 
     handleMonitor() {
-      alert('进入实时监控页面')
+      ElMessage.info('进入实时监控页面')
       // 可以跳转到监控页面
     },
 
@@ -159,7 +162,7 @@ export default {
     },
 
     handleMaintenance() {
-      alert('进入维护管理')
+      ElMessage.info('进入维护管理')
       // 可以跳转到维护管理页面
     }
   }

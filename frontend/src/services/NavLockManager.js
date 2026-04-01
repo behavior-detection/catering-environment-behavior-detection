@@ -1,4 +1,5 @@
 // NavLockManager.js - 全局导航锁定管理器
+import { ElMessage } from 'element-plus'
 export class NavLockManager {
   constructor() {
     this.lockedElements = new Map();
@@ -92,9 +93,9 @@ export class NavLockManager {
       // 根据当前页面显示不同提示
       const currentPath = window.location.pathname;
       if (currentPath === '/' || currentPath.includes('Page1')) {
-        alert('请先完成登录才能使用此功能！');
+        ElMessage.warning('请先完成登录才能使用此功能！');
       } else {
-        alert('请先退出登录才能返回首页！');
+        ElMessage.warning('请先退出登录才能返回首页！');
       }
       return false;
     };

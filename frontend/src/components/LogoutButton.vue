@@ -30,6 +30,7 @@
 <script>
 // 导入导航锁定管理器
 import { navLockManager } from '@/services/NavLockManager'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'LogoutButton',
@@ -51,6 +52,9 @@ export default {
 
     // 确认退出
     confirmLogout() {
+      // 清除 JWT Token
+      localStorage.removeItem('authToken')
+
       // 清除所有用户信息
       sessionStorage.removeItem('userInfo')
       sessionStorage.removeItem('adminInfo')
@@ -65,9 +69,8 @@ export default {
       // 跳转到首页（Page1）
       this.$router.push('/')
 
-      // 可选：显示退出成功提示
       setTimeout(() => {
-        alert('已成功退出账号！')
+        ElMessage.success('已成功退出账号！')
       }, 100)
     }
   }

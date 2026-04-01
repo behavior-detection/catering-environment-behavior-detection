@@ -44,6 +44,7 @@
 
 <script>
 import { violationsAPI, aiAPI, visitorAPI } from '@/services/api'
+import { ElMessageBox } from 'element-plus'
 import AIQuerySection from './feedback/AIQuerySection.vue'
 import ChatInterface from './feedback/ChatInterface.vue'
 import MessageToast from './common/MessageToast.vue'
@@ -401,24 +402,25 @@ export default {
     },
 
     // 退出Visitor模式
-    exitVisitorMode() {
-      if (confirm('确定要退出访问模式吗?')) {
-        sessionStorage.removeItem('visitor_access_token')
-        sessionStorage.removeItem('visitor_token_info')
+    async exitVisitorMode() {
+      try {
+        await ElMessageBox.confirm('确定要退出访问模式吗?', '提示', { type: 'warning' })
+      } catch { return }
+      sessionStorage.removeItem('visitor_access_token')
+      sessionStorage.removeItem('visitor_token_info')
 
-        this.isVisitorMode = false
-        this.visitorAccessToken = ''
-        this.visitorInfo = null
+      this.isVisitorMode = false
+      this.visitorAccessToken = ''
+      this.visitorInfo = null
 
-        this.showMessage('已退出访问模式', 'info')
+      this.showMessage('已退出访问模式', 'info')
 
-        // 可选: 刷新页面或跳转
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      }
+      // 可选: 刷新页面或跳转
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     },
-
+    
     // 获取授权类型文本
     getAccessTypeText(type) {
       return type === 'warehouse' ? '仓库访问' : '时间段访问'

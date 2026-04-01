@@ -38,6 +38,7 @@
 <script>
 // 导入全局导航锁定管理器
 import { navLockManager } from '@/services/NavLockManager'
+import { ElMessage } from 'element-plus'
 
 // 认证相关组件
 import IdentityDivision from '../components/IdentityDivision.vue'
@@ -171,8 +172,10 @@ export default {
       }
 
       // 登录成功后跳转到 Page2
-      alert(`${this.userType} 登录成功！`)
-      this.$router.push('/Page2')
+      ElMessage.success(`${this.userType} 登录成功！`)
+      setTimeout(() => {
+        this.$router.push('/Page2')
+      }, 1500)
     },
 
     // 处理跳转到注册页面
@@ -194,8 +197,10 @@ export default {
 
     // 处理注册成功
     handleRegisterSuccess() {
-      alert('注册成功！')
-      this.currentComponent = 'IdentityDivision'
+      ElMessage.success('注册成功！')
+      setTimeout(() => {
+        this.currentComponent = 'IdentityDivision'
+      }, 1500)
     },
 
     // 处理忘记密码
@@ -227,8 +232,10 @@ export default {
 
     // 处理密码重置成功
     handleResetSuccess() {
-      alert('密码重置成功！')
-      this.currentComponent = 'IdentityDivision'
+      ElMessage.success('密码重置成功！')
+      setTimeout(() => {
+        this.currentComponent = 'IdentityDivision'
+      }, 1500)
     },
 
     // 返回上一个组件

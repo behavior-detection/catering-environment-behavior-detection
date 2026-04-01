@@ -27,6 +27,7 @@
 <script>
 import SetSecurityQuestion from './SetSecurityQuestion.vue'
 import ResetSecurityQuestion from './ResetSecurityQuestion.vue'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'RecogSecurityQuestions',
@@ -55,10 +56,12 @@ export default {
     async checkSecurityStatus() {
       this.loading = true
       try {
+        const token = localStorage.getItem('authToken')
         const response = await fetch(`/api/check-security-status?username=${encodeURIComponent(this.userInfo.username)}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           }
         })
 
@@ -74,12 +77,12 @@ export default {
             this.showSetSecurity = true
           }
         } else {
-          alert('检查密保状态失败：' + (data.message || '未知错误'))
+          ElMessage.error('检查密保状态失败：' + (data.message || '未知错误'))
           this.$emit('back')
         }
       } catch (error) {
         console.error('检查密保状态失败:', error)
-        alert('网络错误，请稍后重试')
+        ElMessage.error('网络错误，请稍后重试')
         this.$emit('back')
       } finally {
         this.loading = false
@@ -87,12 +90,12 @@ export default {
     },
 
     handleSetSuccess() {
-      alert('密保问题设置成功！')
+      ElMessage.success('密保问题设置成功！')
       this.$emit('back')
     },
 
     handleResetSuccess() {
-      alert('密保问题重置成功！')
+      ElMessage.success('密保问题重置成功！')
       this.$emit('back')
     }
   }

@@ -274,10 +274,12 @@
                 </td>
                 <td class="detection-cell">
                   <div v-if="record.class_numbers" class="class-numbers">
-                    <span v-for="(count, type) in record.class_numbers" :key="type" v-if="count > 0" class="class-tag">
-                      {{ getViolationTypeName(type) }}: {{ count }}
-                    </span>
-                  </div>
+                    <template v-for="(count, type) in record.class_numbers" :key="type">
+                        <span v-if="count > 0" class="class-tag">
+                          {{ getViolationTypeName(type) }}: {{ count }}
+                        </span>
+                      </template>
+                    </div>
                 </td>
                 <td class="actions-cell">
                   <button @click="viewRecordDetails(record)" class="action-btn view">
@@ -332,6 +334,7 @@
 <script>
 // 引入 ECharts
 import * as echarts from 'echarts'
+import { ElMessageBox } from 'element-plus'
 // 引入 API
 import { visitorAPI } from '@/services/api'
 
@@ -378,6 +381,7 @@ export default {
       // 图表相关数据
       trendTimeRange: '24h',
       currentHourlyData: {},
+      currentDateData: {},
       violationChartType: 'pie', // 添加：跟踪违规类型图表的当前类型
 
       // 图表实例
@@ -490,23 +494,23 @@ export default {
       }
     },
 
-    // 新增: 退出Visitor模式
-    exitVisitorMode() {
-      if (confirm('确定要退出访问模式吗?')) {
-        sessionStorage.removeItem('visitor_access_token')
-        sessionStorage.removeItem('visitor_token_info')
+    async exitVisitorMode() {
+      try {
+        await ElMessageBox.confirm('确定要退出访问模式吗?', '提示', { type: 'warning' })
+      } catch { return }
+      sessionStorage.removeItem('visitor_access_token')
+      sessionStorage.removeItem('visitor_token_info')
 
-        this.isVisitorMode = false
-        this.visitorAccessToken = ''
-        this.visitorInfo = null
+      this.isVisitorMode = false
+      this.visitorAccessToken = ''
+      this.visitorInfo = null
 
-        this.showMessage('已退出访问模式', 'info')
+      this.showMessage('已退出访问模式', 'info')
 
-        // 可选: 刷新页面或跳转
-        setTimeout(() => {
+      // 可选: 刷新页面或跳转
+      setTimeout(() => {
           window.location.reload()
         }, 1000)
-      }
     },
 
     // 新增: 获取授权类型文本
@@ -591,9 +595,13 @@ export default {
 
           console.log('Manager模式 - 发送请求到:', apiUrl)
 
+          const token = localStorage.getItem('authToken')
           response = await fetch(apiUrl, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
           })
 
           if (!response.ok) {
@@ -618,9 +626,13 @@ export default {
           })
           apiUrl = `/api/monitor/violations/analytics/?${params}`
 
+          const token = localStorage.getItem('authToken')
           response = await fetch(apiUrl, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
           })
 
           if (!response.ok) {
@@ -676,8 +688,8 @@ export default {
           count
         }))
 
-        // 保存按小时数据用于图表
         this.currentHourlyData = data.violations_by_hour || {}
+        this.currentDateData = data.violations_by_date || {}
 
         // 处理最近记录
         this.recentRecords = (data.recent_records || []).map(record => {
@@ -875,19 +887,32 @@ export default {
       this.cameraChart.setOption(option, true)
     },
 
-    // 更新趋势图
     updateTrendsChart() {
       if (!this.trendsChart) {
         return
       }
 
-      const violationsByHour = this.currentHourlyData || {}
-      const hours = []
-      const data = []
+      let labels = []
+      let data = []
 
-      for (let i = 0; i < 24; i++) {
-        hours.push(i + '时')
-        data.push(violationsByHour[i] || 0)
+      if (this.trendTimeRange === '24h') {
+        const violationsByHour = this.currentHourlyData || {}
+        for (let i = 0; i < 24; i++) {
+          labels.push(i + '时')
+          data.push(violationsByHour[i] || 0)
+        }
+      } else {
+        const violationsByDate = this.currentDateData || {}
+        const days = this.trendTimeRange === '7d' ? 7 : 30
+        const today = new Date()
+
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date(today)
+          d.setDate(d.getDate() - i)
+          const dateStr = d.toISOString().slice(0, 10)
+          labels.push((d.getMonth() + 1) + '/' + d.getDate())
+          data.push(violationsByDate[dateStr] || 0)
+        }
       }
 
       const option = {
@@ -905,9 +930,10 @@ export default {
         },
         xAxis: {
           type: 'category',
-          data: hours,
+          data: labels,
           axisLabel: {
-            interval: 2,
+            interval: this.trendTimeRange === '24h' ? 2 : 0,
+            rotate: this.trendTimeRange === '30d' ? 45 : 0,
             color: '#6B7280'
           }
         },

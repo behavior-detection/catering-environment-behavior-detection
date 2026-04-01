@@ -76,6 +76,7 @@
 
 <script>
 import { authService } from '@/services/auth';
+import { ElMessage } from 'element-plus';
 
 export default {
   name: 'RegisterUser',
@@ -126,7 +127,7 @@ export default {
 
         if (result.success || result.status === 'success') {
           this.startCountdown();
-          alert('验证码已发送到您的邮箱');
+          ElMessage.success('验证码已发送到您的邮箱');
         } else {
           this.errorMessage = result.message || '发送验证码失败';
         }
@@ -213,7 +214,7 @@ export default {
 
         if (result.success || result.status === 'success') {
           sessionStorage.removeItem('verificationData');
-          alert('注册成功！请使用您的账号登录');
+          ElMessage.success('注册成功！请使用您的账号登录');
           this.$emit('register-success', result);
         } else {
           this.errorMessage = result.message || '注册失败';

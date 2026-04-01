@@ -16,7 +16,6 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 从 store 获取 loading 状态
     if (store) {
       store.dispatch('setLoading', true)
     }
@@ -24,6 +23,11 @@ api.interceptors.request.use(
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
     if (csrfToken) {
       config.headers['X-CSRFToken'] = csrfToken
+    }
+
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
 
     console.log('API请求:', config.method?.toUpperCase(), config.url, config.data || config.params)
@@ -56,7 +60,11 @@ api.interceptors.response.use(
     console.error('API响应错误:', error.response?.status, error.response?.data || error.message)
 
     if (error.response?.status === 401) {
-      console.warn('未授权访问，可能需要重新登录')
+      console.warn('令牌过期或无效，清除登录状态')
+      localStorage.removeItem('authToken')
+      sessionStorage.removeItem('userInfo')
+      sessionStorage.removeItem('adminInfo')
+      window.location.href = '/'
     } else if (error.response?.status === 403) {
       console.warn('访问被禁止')
     } else if (error.response?.status >= 500) {
@@ -136,7 +144,7 @@ export const violationsAPI = {
   getStats: (params) => api.get('/api/monitor/violations/stats/', { params }),
 
   // 清空违规数据
-  clearData: () => api.post('/api/monitor/violations/clear/'),
+  clearData: () => api.delete('/api/monitor/violations/clear/'),
 }
 
 // 设备仓库管理相关API
@@ -284,7 +292,7 @@ export const permissionAPI = {
   },
   // 根据 access_token 获取授权日期的文件列表
   getFilesByDate(accessToken) {
-    return axios.get('/api/monitor/permission/files-by-date/', {
+    return api.get('/api/monitor/permission/files-by-date/', {
       params: { access_token: accessToken }
     })
   }

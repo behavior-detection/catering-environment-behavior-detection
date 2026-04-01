@@ -119,11 +119,17 @@ export default {
           localStorage.setItem(`${this.userType}Username`, this.formData.username);
         }
 
-        // 保存用户信息
+        // 保存 JWT Token
+        if (response.data?.token) {
+          localStorage.setItem('authToken', response.data.token)
+        }
+
+        // 保存用户信息（排除 token 避免重复存储）
+        const { token, ...userData } = (response.data || {})
         const userInfo = {
           username: this.formData.username,
           userType: this.userType,
-          ...response.data  // 包含后端返回的其他用户信息
+          ...userData
         };
 
         sessionStorage.setItem('userInfo', JSON.stringify(userInfo));

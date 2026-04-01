@@ -26,6 +26,7 @@ from collections import defaultdict
 from .models import DeviceWarehouse, WarehouseFile, ViolationRecord, AIAnalysisReport, AIQueryHistory, SystemConfig, PermissionRequest
 from .services import JanusAIService, SystemMonitor, ViolationDataProcessor, AIQueryProcessor
 from apps.login.api.models import Manager, Visitor
+from apps.login.authentication.jwt_utils import login_required_jwt, role_required
 from .janus_pro_service import LanguageModelService
 from typing import Dict, List, Any
 from .integrated_smart_router import IntelligentQueryRouter
@@ -57,6 +58,7 @@ def get_redis_client():
 # ====================== 设备仓库管理相关 API ======================
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def get_warehouses(request):
     """获取设备仓库列表 - 包含类型信息"""
@@ -102,6 +104,8 @@ def get_warehouses(request):
 
 
 @csrf_exempt
+@login_required_jwt
+@role_required('manager', 'admin')
 @require_http_methods(["POST"])
 def create_warehouse(request):
     """创建新的设备仓库 - 支持类型选择"""
@@ -176,6 +180,7 @@ def create_warehouse(request):
 
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def get_warehouse_detail(request, warehouse_id):
     """获取仓库详细信息"""
@@ -226,6 +231,8 @@ def get_warehouse_detail(request, warehouse_id):
 
 
 @csrf_exempt
+@login_required_jwt
+@role_required('manager', 'admin')
 @require_http_methods(["DELETE"])
 def delete_warehouse(request, warehouse_id):
     """删除设备仓库"""
@@ -292,6 +299,7 @@ def delete_warehouse(request, warehouse_id):
 # ====================== 文件管理相关 API ======================
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def get_warehouse_files(request, warehouse_id):
     """
@@ -369,6 +377,8 @@ def get_warehouse_files(request, warehouse_id):
 
 
 @csrf_exempt
+@login_required_jwt
+@role_required('manager', 'admin')
 @require_http_methods(["POST"])
 def upload_files(request):
     """上传文件到仓库 - 根据仓库类型验证文件"""
@@ -509,6 +519,7 @@ def upload_files(request):
 
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def get_file_content(request, file_id):
     """获取文件内容或下载文件 - 最终修复版"""
@@ -761,6 +772,7 @@ def handle_mp4_file(file_path, file_record, download, stream, request):
         }, status=500)
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def get_files_by_date(request):
     """
@@ -891,6 +903,8 @@ def get_files_by_date(request):
 
 
 @csrf_exempt
+@login_required_jwt
+@role_required('manager', 'admin')
 @require_http_methods(["DELETE"])
 def delete_file(request, file_id):
     """删除文件"""
@@ -1035,14 +1049,15 @@ async def ai_query(request):
         }, status=500)
 
 
-# ✅ 直接设置属性而非用 @csrf_exempt 装饰器
+# 直接设置属性而非用 @csrf_exempt 装饰器
 # 部分 Django 版本的 csrf_exempt 会把 async def 包进同步 wrapper，
 # 导致调用时返回未 await 的协程而非 HttpResponse
 ai_query.csrf_exempt = True
 
 
 @csrf_exempt
-@require_http_methods(["GET"])
+@login_required_jwt
+@require_http_methods(["POST"])
 def ai_query_history(request):
     """获取 AI 查询历史"""
     try:
@@ -1093,6 +1108,7 @@ def ai_query_history(request):
 # ====================== 系统状态相关 API ======================
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def system_status(request):
     """获取系统状态"""
@@ -1573,6 +1589,7 @@ def violations_dashboard(request):
 
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def violations_analytics(request):
     """获取违规数据分析API (供 HistoricalData.vue 使用)"""
@@ -1610,6 +1627,7 @@ def parse_time_range(time_range):
 
 # --- 用于处理分析按钮的请求 ---
 @csrf_exempt
+@login_required_jwt
 def get_violations_by_eid(request):
     """根据 EID 获取违规数据（修复版本 - 支持中文日期格式）"""
     eid = request.GET.get('eid')
@@ -1992,6 +2010,7 @@ def get_time_description(time_range):
 
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def get_unified_violations_data(request):
     """统一的违规数据获取接口 - 支持数据库和文件数据"""
@@ -2150,6 +2169,7 @@ def merge_violation_data(data1, data2):
 
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def violations_list(request):
     """获取违规记录列表API"""
@@ -2203,6 +2223,7 @@ def violations_list(request):
 
 
 @csrf_exempt
+@login_required_jwt
 @require_http_methods(["GET"])
 def violations_stats(request):
     """获取违规统计数据API"""
@@ -2247,7 +2268,9 @@ def violations_stats(request):
 
 
 @csrf_exempt
-@require_http_methods(["POST"])
+@login_required_jwt
+@role_required('manager', 'admin')
+@require_http_methods(["DELETE"])
 def clear_violations(request):
     """清空违规数据API"""
     try:
@@ -2272,6 +2295,8 @@ def clear_violations(request):
 
 
 @csrf_exempt
+@login_required_jwt
+@role_required('manager', 'admin')
 @require_http_methods(["GET"])
 def export_violations_data(request):
     """导出违规数据API"""
