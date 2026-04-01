@@ -67,16 +67,6 @@
       </div>
     </div>
 
-    <!-- 错误显示区域 -->
-    <div v-if="lastError" class="error-panel">
-      <h4><i class="fas fa-exclamation-triangle"></i> 错误信息</h4>
-      <p>{{ lastError }}</p>
-      <details v-if="errorDetails">
-        <summary>详细错误信息</summary>
-        <pre>{{ errorDetails }}</pre>
-      </details>
-    </div>
-
     <div class="statistics-grid">
       <div class="stat-card">
         <div class="stat-icon violations">
@@ -354,8 +344,6 @@ export default {
     return {
       isLoading: false,
       lastUpdateTime: '',
-      lastError: '',
-      errorDetails: '',
 
       // Visitor模式相关
       isVisitorMode: false,
@@ -549,8 +537,6 @@ export default {
     // 修改: 加载数据 - 支持Visitor模式
     async loadData() {
       this.isLoading = true
-      this.lastError = ''
-      this.errorDetails = ''
 
       try {
         let response
@@ -651,9 +637,19 @@ export default {
         }
       } catch (error) {
         console.error('加载数据失败:', error)
-        this.lastError = error.message
-        this.errorDetails = error.stack || ''
-        this.showMessage('加载数据失败: ' + error.message, 'error')
+        let userMessage = '数据加载失败，请稍后重试'
+        if (error.message?.includes('401')) {
+          userMessage = '登录已过期，请重新登录'
+        } else if (error.message?.includes('403')) {
+          userMessage = '没有权限访问该数据'
+        } else if (error.message?.includes('404')) {
+          userMessage = '请求的数据不存在'
+        } else if (error.message?.includes('500')) {
+          userMessage = '服务器内部错误，请稍后重试'
+        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          userMessage = '网络连接失败，请检查网络'
+        }
+        this.showMessage(userMessage, 'error')
       } finally {
         this.isLoading = false
       }
@@ -711,7 +707,7 @@ export default {
 
       } catch (error) {
         console.error('数据处理错误:', error)
-        this.lastError = '数据处理失败: ' + error.message
+        this.showMessage('数据处理异常，请刷新页面重试', 'error')
       }
     },
 
@@ -1829,25 +1825,6 @@ export default {
   word-wrap: break-word;
   max-height: 200px;
   overflow-y: auto;
-}
-
-/* 错误面板 */
-.error-panel {
-  background: #ffebee;
-  border: 1px solid #ffcdd2;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.error-panel h4 {
-  margin: 0 0 12px 0;
-  color: #c62828;
-}
-
-.error-panel p {
-  margin: 8px 0;
-  color: #c62828;
 }
 
 /* 消息提示样式 */
